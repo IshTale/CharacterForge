@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas-headshot: #5b8def;
+  --canvas-fullbody: #32c48d;
+  --canvas-hand: #f7b267;
+  --canvas-feet: #e76f51;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #0e1014;
+  color: #f7f8fa;
+}
