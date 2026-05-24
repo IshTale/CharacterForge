@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 import { MODULE_CONFIG } from "@/constants/api-modules";
+import { applyHairTransfer } from "@/lib/perfectcorp/modules/hair";
+import {
+  applyBracelet,
+  applyNecklace,
+  applyRing,
+  applyWatch,
+  type JewelryVtoPayload
+} from "@/lib/perfectcorp/modules/jewelry";
+import { applyNails } from "@/lib/perfectcorp/modules/nails";
 import { generateImageItem } from "@/lib/perfectcorp/modules/image-gen";
 import { applyMakeup, validateEffects } from "@/lib/perfectcorp/modules/makeup";
 import {
@@ -10,6 +19,8 @@ import {
   type AccessoryTaskPayload,
   type ClothTaskPayload
 } from "@/lib/perfectcorp/modules/wardrobe";
+import type { HairTransferTaskPayload } from "@/lib/hair/build-hair-transfer-payload";
+import type { NailVtoTaskPayload } from "@/types/nail-api";
 import { createTask, getTask, normaliseTaskStatus } from "@/lib/perfectcorp/task-engine";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
 
@@ -44,6 +55,73 @@ function parseAccessoryPayload(body: Record<string, unknown>): AccessoryTaskPayl
     return null;
   }
   return body as unknown as AccessoryTaskPayload;
+}
+
+function parseHairTransferPayload(body: Record<string, unknown>): HairTransferTaskPayload | null {
+  if (typeof body.src_file_id !== "string") {
+    return null;
+  }
+  if (
+    typeof body.template_id === "string" ||
+    typeof body.ref_file_id === "string" ||
+    typeof body.ref_file_url === "string"
+  ) {
+    return body as unknown as HairTransferTaskPayload;
+  }
+  return null;
+}
+
+function parseNailVtoPayload(body: Record<string, unknown>): NailVtoTaskPayload | null {
+  if (
+    body.version !== "1.0" ||
+    typeof body.src_file_id !== "string" ||
+    typeof body.effect_type !== "string" ||
+    !Array.isArray(body.effects)
+  ) {
+    return null;
+  }
+  return body as unknown as NailVtoTaskPayload;
+}
+
+function parseJewelryPayload(body: Record<string, unknown>): JewelryVtoPayload | null {
+  if (typeof body.src_file_id !== "string") {
+    return null;
+  }
+  if (!body.ref_file_id && !body.ref_file_url) {
+    return null;
+  }
+  return body as unknown as JewelryVtoPayload;
+}
+
+async function completeVtoTask(
+  module: string,
+  result: { task_id: string | null; result_url: string | null; dst_id: string | null },
+  payload: unknown,
+  send: (event: string, data: unknown) => void,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  runStub: typeof runStubTask
+) {
+  if (result.task_id && result.result_url) {
+    send("task_started", { module, task_id: result.task_id, task_status: "processing" });
+    send("task_complete", {
+      task_id: result.task_id,
+      task_status: "success",
+      result_url: result.result_url,
+      dst_id: result.dst_id
+    });
+    controller.close();
+    return true;
+  }
+  if (result.dst_id) {
+    await runStub(
+      module,
+      typeof payload === "string" ? payload : JSON.stringify(payload),
+      send
+    );
+    controller.close();
+    return true;
+  }
+  return false;
 }
 
 async function runStubTask(
@@ -162,6 +240,84 @@ export async function POST(request: Request, context: RouteContext) {
             if (result.dst_id) {
               await runStubTask(module, JSON.stringify(payload), send);
               controller.close();
+              return;
+            }
+          }
+        }
+
+        if (module === "hair-transfer") {
+          const payload = parseHairTransferPayload(body);
+          if (payload) {
+            send("progress", { step: "hair-transfer" });
+            const result = await applyHairTransfer(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (module === "nail-vto") {
+          const payload = parseNailVtoPayload(body);
+          if (payload) {
+            send("progress", { step: "nail-vto" });
+            const result = await applyNails(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (module === "ring") {
+          const payload = parseJewelryPayload(body);
+          if (payload) {
+            send("progress", { step: "ring" });
+            const result = await applyRing(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (module === "bracelet") {
+          const payload = parseJewelryPayload(body);
+          if (payload) {
+            send("progress", { step: "bracelet" });
+            const result = await applyBracelet(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (module === "watch") {
+          const payload = parseJewelryPayload(body);
+          if (payload) {
+            send("progress", { step: "watch" });
+            const result = await applyWatch(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
+              return;
+            }
+          }
+        }
+
+        if (module === "necklace") {
+          const payload = parseJewelryPayload(body);
+          if (payload) {
+            send("progress", { step: "necklace" });
+            const result = await applyNecklace(payload);
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
               return;
             }
           }

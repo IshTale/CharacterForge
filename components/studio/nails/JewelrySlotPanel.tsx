@@ -10,7 +10,7 @@ import { ImageValidator } from "@/lib/validation/upload";
 interface JewelrySlotPanelProps {
   slotId: JewelrySlotId;
   refImageUrl: string | null | undefined;
-  onChange: (refImageUrl: string | null) => void;
+  onChange: (ref: { ref_image_url: string | null; ref_file_id?: string | null }) => void;
   onDirty: () => void;
 }
 
@@ -27,7 +27,7 @@ export default function JewelrySlotPanel({
 
   const handleUpload = async (file: File | null) => {
     if (!file) {
-      onChange(null);
+      onChange({ ref_image_url: null, ref_file_id: null });
       onDirty();
       return;
     }
@@ -37,7 +37,10 @@ export default function JewelrySlotPanel({
     try {
       ImageValidator.validateAccessory(file);
       const uploaded = await uploadModuleFile(file, definition.fileModule);
-      onChange(uploaded.public_url ?? null);
+      onChange({
+        ref_image_url: uploaded.public_url ?? null,
+        ref_file_id: uploaded.file_id
+      });
       onDirty();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
@@ -48,7 +51,7 @@ export default function JewelrySlotPanel({
 
   const clearSlot = () => {
     setError(null);
-    onChange(null);
+    onChange({ ref_image_url: null, ref_file_id: null });
     onDirty();
   };
 

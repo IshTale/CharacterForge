@@ -5,17 +5,29 @@ import {
   fetchHairTransferTemplates,
   type HairV1Module
 } from "@/lib/perfectcorp/hair-catalog";
+import { postAndPollV2Task } from "@/lib/perfectcorp/v2-task-client";
+import type { HairTransferTaskPayload } from "@/lib/hair/build-hair-transfer-payload";
 
+export interface HairTaskResult {
+  task_id: string | null;
+  result_url: string | null;
+  dst_id: string | null;
+}
+
+export async function applyHairTransfer(payload: HairTransferTaskPayload): Promise<HairTaskResult> {
+  return postAndPollV2Task("/task/hair-transfer", payload as unknown as Record<string, unknown>, {
+    apiVersion: "v2.1",
+    stubPrefix: "hair-transfer"
+  });
+}
+
+/** @deprecated Legacy stubs — not used in style-only hair flow */
 export async function runHairPipeline() {
   return { result_url: null as string | null };
 }
 
 export async function applyHairStyle() {
   return { dst_id: `hair_style_${randomUUID()}` };
-}
-
-export async function applyHairColor() {
-  return { dst_id: `hair_color_${randomUUID()}` };
 }
 
 export async function applyHairExtension() {

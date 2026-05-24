@@ -18,8 +18,9 @@ export const MODULE_CONFIG: Record<string, ModuleConfig> = {
   bracelet: { authFamily: "v2", sourceCanvas: "handwrist" },
   watch: { authFamily: "v2", sourceCanvas: "handwrist" },
   necklace: { authFamily: "v2", sourceCanvas: "headshot" },
+  "hair-transfer": { authFamily: "v2", sourceCanvas: "headshot" },
   "hair-style": { authFamily: "v1", sourceCanvas: "headshot" },
-  "hair-color": { authFamily: "v1", sourceCanvas: "headshot" },
+  "hair-color": { authFamily: "v2", sourceCanvas: "headshot" },
   "hair-ext": { authFamily: "v1", sourceCanvas: "headshot" },
   "hair-bang": { authFamily: "v1", sourceCanvas: "headshot" },
   "hair-vol": { authFamily: "v1", sourceCanvas: "headshot" }

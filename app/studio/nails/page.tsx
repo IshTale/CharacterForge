@@ -51,17 +51,37 @@ export default function NailsPage() {
 
   const nailReady = Boolean(activeNailStyle(nails).custom_texture_url);
 
-  const setJewelryRef = (slotId: "ring" | "bracelet" | "watch" | "necklace", url: string | null) => {
+  const setJewelryRef = (
+    slotId: "ring" | "bracelet" | "watch" | "necklace",
+    ref: { ref_image_url: string | null; ref_file_id?: string | null }
+  ) => {
     updateRecipe((current) => {
       const nextJewelry: JewelryConfig = { ...current.jewelry };
       if (slotId === "ring") {
-        nextJewelry.rings = url ? [{ finger: "ring", ref_image_url: url }] : [];
+        nextJewelry.rings = ref.ref_image_url || ref.ref_file_id
+          ? [{ finger: "ring", ref_image_url: ref.ref_image_url ?? "", ref_file_id: ref.ref_file_id ?? undefined }]
+          : [];
       } else if (slotId === "bracelet") {
-        nextJewelry.bracelets = url ? [{ wrist: "left", ref_image_url: url }] : [];
+        nextJewelry.bracelets = ref.ref_image_url || ref.ref_file_id
+          ? [{ wrist: "left", ref_image_url: ref.ref_image_url ?? "", ref_file_id: ref.ref_file_id ?? undefined }]
+          : [];
       } else if (slotId === "watch") {
-        nextJewelry.watch = url ? { wrist: "left", ref_image_url: url } : null;
+        nextJewelry.watch =
+          ref.ref_image_url || ref.ref_file_id
+            ? {
+                wrist: "left",
+                ref_image_url: ref.ref_image_url ?? "",
+                ref_file_id: ref.ref_file_id ?? undefined
+              }
+            : null;
       } else {
-        nextJewelry.necklace = url ? { ref_image_url: url } : null;
+        nextJewelry.necklace =
+          ref.ref_image_url || ref.ref_file_id
+            ? {
+                ref_image_url: ref.ref_image_url ?? "",
+                ref_file_id: ref.ref_file_id ?? undefined
+              }
+            : null;
       }
       return { ...current, jewelry: nextJewelry };
     });
@@ -105,8 +125,8 @@ export default function NailsPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-white">Nails</h1>
         <p className="text-sm text-gray-400">
-          Choose all fingers or one finger, upload nail art, then apply. Jewelry is optional and
-          configured separately below.
+          Choose all fingers or one finger, upload nail art, then apply. Optional jewelry below is
+          included in the same apply when configured.
         </p>
       </header>
 
@@ -144,7 +164,7 @@ export default function NailsPage() {
               key={slot.id}
               slotId={slot.id}
               refImageUrl={jewelryRefBySlot[slot.id]}
-              onChange={(url) => setJewelryRef(slot.id, url)}
+              onChange={(ref) => setJewelryRef(slot.id, ref)}
               onDirty={() => markDirty("nails")}
             />
           ))}

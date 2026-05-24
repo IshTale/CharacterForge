@@ -1,16 +1,66 @@
-import { randomUUID } from "node:crypto";
+import { postAndPollV2Task } from "@/lib/perfectcorp/v2-task-client";
 
-export async function applyJewelry() {
-  return {
-    hand_result_url: null as string | null,
-    head_result_url: null as string | null
-  };
+export interface JewelryVtoPayload {
+  src_file_id: string;
+  ref_file_id?: string;
+  ref_file_url?: string;
+  finger?: string;
+  wrist?: "left" | "right";
 }
 
-export async function applyRings() {
-  return { dst_id: `ring_${randomUUID()}` };
+function refFields(payload: JewelryVtoPayload) {
+  if (payload.ref_file_id) {
+    return { ref_file_id: payload.ref_file_id };
+  }
+  if (payload.ref_file_url) {
+    return { ref_file_url: payload.ref_file_url };
+  }
+  throw new Error("Jewelry reference image is required.");
 }
 
-export async function applyBracelets() {
-  return { dst_id: `bracelet_${randomUUID()}` };
+export async function applyRing(payload: JewelryVtoPayload) {
+  return postAndPollV2Task(
+    "/task/ring",
+    {
+      src_file_id: payload.src_file_id,
+      ...refFields(payload),
+      finger: payload.finger ?? "ring"
+    },
+    { stubPrefix: "ring" }
+  );
+}
+
+export async function applyBracelet(payload: JewelryVtoPayload) {
+  return postAndPollV2Task(
+    "/task/bracelet",
+    {
+      src_file_id: payload.src_file_id,
+      ...refFields(payload),
+      wrist: payload.wrist ?? "left"
+    },
+    { stubPrefix: "bracelet" }
+  );
+}
+
+export async function applyWatch(payload: JewelryVtoPayload) {
+  return postAndPollV2Task(
+    "/task/watch",
+    {
+      src_file_id: payload.src_file_id,
+      ...refFields(payload),
+      wrist: payload.wrist ?? "left"
+    },
+    { stubPrefix: "watch" }
+  );
+}
+
+export async function applyNecklace(payload: JewelryVtoPayload) {
+  return postAndPollV2Task(
+    "/task/necklace",
+    {
+      src_file_id: payload.src_file_id,
+      ...refFields(payload)
+    },
+    { stubPrefix: "necklace" }
+  );
 }

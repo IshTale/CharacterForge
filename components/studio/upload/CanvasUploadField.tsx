@@ -99,6 +99,7 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
           Formats: {requirements.formats} · Max {requirements.maxFileSizeMb}MB · Long side ≤{" "}
           {requirements.maxLongSidePx}px
         </li>
+        <li>Larger files are compressed automatically before upload.</li>
       </ul>
 
       <label

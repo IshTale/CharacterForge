@@ -35,9 +35,30 @@ export interface HairTransferSelection {
   ref_image_url?: string;
 }
 
+export type HairColorPatternName = "full" | "ombre";
+
+export interface HairColorPalette {
+  color: string;
+  color_intensity: number;
+  shine_intensity: number;
+}
+
+export interface HairColorPattern {
+  name: HairColorPatternName;
+  /** Ombre blend strength (0–100) */
+  blend_strength?: number;
+  /** Ombre vertical offset (−0.99 to 0.99) */
+  line_offset?: number;
+  /** Ombre section to color */
+  coloring_section?: "top";
+}
+
 export interface HairColorSelection {
-  color_hex: string;
-  intensity: number;
+  /** Custom palettes + pattern, or a catalog preset name */
+  mode: "custom" | "preset";
+  preset?: string | null;
+  pattern: HairColorPattern;
+  palettes: HairColorPalette[];
 }
 
 /** @deprecated Legacy v1 catalog selection — migrated away in favor of HairColorSelection */

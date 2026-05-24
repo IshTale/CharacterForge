@@ -1,3 +1,29 @@
+import { MODULE_CONFIG } from "@/constants/api-modules";
+import { CANVAS_UPLOAD_REQUIREMENTS } from "@/constants/upload-requirements";
+import { compressImageForUpload } from "@/lib/validation/compress-upload-image";
+
+const ACCESSORY_UPLOAD_MODULES = new Set([
+  "hat",
+  "bag",
+  "ring",
+  "bracelet",
+  "watch",
+  "necklace"
+]);
+
+function compressOptionsForModule(module: string) {
+  const config = MODULE_CONFIG[module];
+  if (!config) {
+    return { maxLongSidePx: 2048 };
+  }
+  const requirements = CANVAS_UPLOAD_REQUIREMENTS[config.sourceCanvas];
+  return {
+    maxLongSidePx: ACCESSORY_UPLOAD_MODULES.has(module)
+      ? 1024
+      : requirements.maxLongSidePx
+  };
+}
+
 export interface SseTaskResult {
   task_id: string;
   result_url: string | null;
@@ -102,8 +128,9 @@ export async function uploadModuleFile(
   file: File,
   module: string
 ): Promise<{ file_id: string; public_url?: string }> {
+  const uploadFile = await compressImageForUpload(file, compressOptionsForModule(module));
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", uploadFile);
   const response = await fetch(`/api/perfectcorp/${module}/file`, {
     method: "POST",
     body: form
@@ -111,7 +138,9 @@ export async function uploadModuleFile(
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
     const fallback =
-      response.status === 503
+      response.status === 413
+        ? "Upload is too large for hosting limits. Try a smaller image."
+        : response.status === 503
         ? "Upload storage is not configured. Add BLOB_READ_WRITE_TOKEN to .env.local or use local dev uploads."
         : `Upload failed for ${module} (${response.status}).`;
     throw new Error(payload.error ?? fallback);

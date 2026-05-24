@@ -70,17 +70,22 @@ export interface MakeupEffectSelection {
 export interface HairConfig {
   /** v2.1 hair-transfer: template or custom reference photo */
   transfer: HairTransferSelection | null;
-  /** Custom hair color (hex + intensity) */
-  color: HairColorSelection | null;
-  /** Active studio section in the UI */
+  /** @deprecated Hair color removed from studio — kept for recipe migration */
+  color?: HairColorSelection | null;
+  /** @deprecated */
   selected_section?: "hairstyle" | "color";
 }
 
+export interface JewelryItemRef {
+  ref_file_id?: string;
+  ref_image_url?: string;
+}
+
 export interface JewelryConfig {
-  rings: Array<{ finger: string; ref_image_url: string }>;
-  bracelets: Array<{ wrist: "left" | "right"; ref_image_url: string }>;
-  watch: { wrist: "left" | "right"; ref_image_url: string } | null;
-  necklace: { ref_image_url: string } | null;
+  rings: Array<JewelryItemRef & { finger: string }>;
+  bracelets: Array<JewelryItemRef & { wrist: "left" | "right" }>;
+  watch: (JewelryItemRef & { wrist: "left" | "right" }) | null;
+  necklace: JewelryItemRef | null;
 }
 
 export interface Recipe {

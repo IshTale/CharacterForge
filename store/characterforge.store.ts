@@ -5,7 +5,12 @@ import { runWardrobePipeline } from "@/lib/wardrobe/run-wardrobe-pipeline";
 import { validateEffects } from "@/lib/perfectcorp/modules/makeup";
 import type { CanvasKey, CanvasState } from "@/types/canvas";
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
-import { hairHasSelection } from "@/lib/hair/normalize-hair-config";
+import { hairHasSelection, normalizeHairConfig } from "@/lib/hair/normalize-hair-config";
+import { runHairTransfer } from "@/lib/hair/run-hair-transfer";
+import { jewelryHasSelection } from "@/lib/jewelry/build-pipeline";
+import { runJewelryPipeline } from "@/lib/jewelry/run-jewelry-pipeline";
+import { runNailVto } from "@/lib/nails/run-nail-vto";
+import { activeNailStyle } from "@/types/nails";
 import type { Recipe } from "@/types/recipe";
 import { createDefaultNailsConfig } from "@/types/nails";
 import { createDefaultWardrobeConfig } from "@/types/wardrobe";
@@ -125,7 +130,9 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }),
   triggerRender: async (modules: string[]) => {
     const moduleList = [...modules];
-    const stubModules = moduleList.filter((name) => name !== "makeup" && name !== "wardrobe");
+    const stubModules = moduleList.filter(
+      (name) => name !== "makeup" && name !== "wardrobe" && name !== "hair" && name !== "nails"
+    );
 
     if (moduleList.includes("makeup")) {
       const headshotFileId = get().fileIds.headshot;
@@ -195,24 +202,93 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }
 
     if (moduleList.includes("hair")) {
-      if (!get().fileIds.headshot) {
+      const headshotFileId = get().fileIds.headshot;
+      if (!headshotFileId) {
         throw new Error("Upload a headshot before applying hair.");
       }
-      if (!hairHasSelection(get().recipe.hair)) {
-        throw new Error("Select at least one hair effect before applying.");
+      const hair = normalizeHairConfig(get().recipe.hair);
+      if (!hairHasSelection(hair) || !hair.transfer) {
+        throw new Error("Select a hairstyle template or upload a reference before applying.");
+      }
+
+      get().setCanvasStatus("headshot", "processing");
+      try {
+        const result = await runHairTransfer(headshotFileId, hair.transfer);
+        if (result.result_url) {
+          get().setCanvasImage("headshot", result.result_url);
+        }
+        get().appendTaskResult("headshot", {
+          task_id: result.task_id,
+          task_status: "success",
+          result_url: result.result_url ?? undefined
+        });
+      } catch (error) {
+        get().setCanvasStatus("headshot", "error");
+        throw error;
       }
     }
 
     if (moduleList.includes("nails")) {
-      if (!get().fileIds.handwrist) {
+      const handFileId = get().fileIds.handwrist;
+      const headshotFileId = get().fileIds.headshot;
+      if (!handFileId) {
         throw new Error("Upload a hand & wrist photo before applying nails.");
       }
+
       const nails = get().recipe.nails;
-      const hasArt =
-        nails.global?.custom_texture_url ||
-        Object.values(nails.overrides ?? {}).some((o) => o?.custom_texture_url);
-      if (!hasArt) {
+      const active = activeNailStyle(nails);
+      if (!active.custom_texture_url && !active.custom_texture_file_id) {
         throw new Error("Upload nail art for the selected coverage before applying.");
+      }
+
+      const jewelry = get().recipe.jewelry;
+      const hasJewelry = jewelryHasSelection(jewelry);
+
+      get().setCanvasStatus("handwrist", "processing");
+      if (hasJewelry && jewelry.necklace) {
+        get().setCanvasStatus("headshot", "processing");
+      }
+
+      try {
+        const nailResult = await runNailVto(handFileId, nails);
+        if (nailResult.result_url) {
+          get().setCanvasImage("handwrist", nailResult.result_url);
+        }
+        get().appendTaskResult("handwrist", {
+          task_id: nailResult.task_id,
+          task_status: "success",
+          result_url: nailResult.result_url ?? undefined
+        });
+
+        if (hasJewelry) {
+          const jewelryResult = await runJewelryPipeline(jewelry, {
+            handwrist: nailResult.dst_id ?? handFileId,
+            headshot: headshotFileId
+          });
+          for (const [canvas, url] of Object.entries(jewelryResult.canvasResults)) {
+            if (url) {
+              get().setCanvasImage(canvas as CanvasKey, url);
+            }
+          }
+          get().appendTaskResult("handwrist", {
+            task_id: jewelryResult.task_ids.join("-") || `jewelry-${Date.now()}`,
+            task_status: "success",
+            result_url: jewelryResult.canvasResults.handwrist ?? undefined
+          });
+          if (jewelryResult.canvasResults.headshot) {
+            get().appendTaskResult("headshot", {
+              task_id: jewelryResult.task_ids.join("-") || `jewelry-${Date.now()}`,
+              task_status: "success",
+              result_url: jewelryResult.canvasResults.headshot
+            });
+          }
+        }
+      } catch (error) {
+        get().setCanvasStatus("handwrist", "error");
+        if (hasJewelry && jewelry.necklace) {
+          get().setCanvasStatus("headshot", "error");
+        }
+        throw error;
       }
     }
 
