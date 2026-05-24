@@ -7,10 +7,15 @@ export interface WardrobeItem {
 
 export interface WardrobeConfig {
   items: WardrobeItem[];
+  hat_ref_image_url?: string;
+  bag_ref_image_url?: string;
+  shoes_ref_image_url?: string;
 }
 
 export interface MakeupConfig {
   type: "custom" | "preset";
+  color_hex?: string;
+  intensity?: number;
 }
 
 export interface HairConfig {
@@ -23,6 +28,9 @@ export interface HairConfig {
 
 export interface NailsConfig {
   apply_to: "all" | "thumb" | "index" | "middle" | "ring" | "pinky";
+  color_hex?: string;
+  intensity?: number;
+  texture?: string;
 }
 
 export interface JewelryConfig {
@@ -36,6 +44,7 @@ export interface Recipe {
   recipe_id?: string;
   schema_version: "1.0";
   created_at: string;
+  title?: string;
   wardrobe: WardrobeConfig;
   makeup: MakeupConfig;
   hair: HairConfig;

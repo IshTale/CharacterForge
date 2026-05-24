@@ -27,12 +27,40 @@ export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
   resetStudio: () => void;
 }
 
+const moduleToCanvas: Record<string, CanvasKey[]> = {
+  wardrobe: ["fullbody"],
+  makeup: ["headshot"],
+  hair: ["headshot"],
+  nails: ["handwrist", "headshot"],
+  shoes: ["feet"]
+};
+
+function buildTaskResult(canvas: CanvasKey, moduleName: string): TaskResult {
+  return {
+    task_id: `${moduleName}-${Date.now()}`,
+    task_status: "success",
+    result_url: `https://picsum.photos/seed/${canvas}-${moduleName}-${Date.now()}/1200/1200`
+  };
+}
+
 export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => ({
   canvases: {
     headshot: createEmptyCanvas(),
     fullbody: createEmptyCanvas(),
     handwrist: createEmptyCanvas(),
     feet: createEmptyCanvas()
+  },
+  basePhotos: {
+    headshot: null,
+    fullbody: null,
+    handwrist: null,
+    feet: null
+  },
+  fileIds: {
+    headshot: null,
+    fullbody: null,
+    handwrist: null,
+    feet: null
   },
   setCanvasStatus: (canvas: CanvasKey, status: TaskStatus) =>
     set((state) => ({
@@ -58,6 +86,20 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         }
       }
     })),
+  setBasePhoto: (canvas: CanvasKey, file: File | null) =>
+    set((state) => ({
+      basePhotos: {
+        ...state.basePhotos,
+        [canvas]: file
+      }
+    })),
+  setFileId: (canvas: CanvasKey, fileId: string | null) =>
+    set((state) => ({
+      fileIds: {
+        ...state.fileIds,
+        [canvas]: fileId
+      }
+    })),
   recipe: defaultRecipe,
   dirtyModules: new Set(),
   updateRecipe: (updater) =>
@@ -74,13 +116,42 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       modules.forEach((moduleName) => next.delete(moduleName));
       return { dirtyModules: next };
     }),
-  triggerRender: async (_modules: string[]) => {
-    // Placeholder orchestrator; actual module pipelines plug in here.
-    await Promise.resolve();
+  triggerRender: async (modules: string[]) => {
+    const targets = new Set<CanvasKey>();
+    modules.forEach((moduleName) => {
+      (moduleToCanvas[moduleName] ?? []).forEach((canvas) => targets.add(canvas));
+    });
+
+    targets.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
+    await new Promise((resolve) => setTimeout(resolve, 850));
+
+    targets.forEach((canvas) => {
+      const result = buildTaskResult(canvas, modules.join("+"));
+      if (result.result_url) {
+        get().setCanvasImage(canvas, result.result_url);
+      }
+      get().appendTaskResult(canvas, result);
+    });
+    get().clearDirty(modules);
   },
   publishRecipe: async () => {
-    // Placeholder persistence call.
-    return get().recipe.recipe_id ?? "draft-recipe-id";
+    const response = await fetch("/api/recipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(get().recipe)
+    });
+    if (!response.ok) {
+      throw new Error("Failed to publish recipe.");
+    }
+    const payload = (await response.json()) as { recipe_id: string };
+    const recipeId = payload.recipe_id;
+    set((state) => ({
+      recipe: {
+        ...state.recipe,
+        recipe_id: recipeId
+      }
+    }));
+    return recipeId;
   },
   resetStudio: () =>
     set({
@@ -91,6 +162,18 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         fullbody: createEmptyCanvas(),
         handwrist: createEmptyCanvas(),
         feet: createEmptyCanvas()
+      },
+      basePhotos: {
+        headshot: null,
+        fullbody: null,
+        handwrist: null,
+        feet: null
+      },
+      fileIds: {
+        headshot: null,
+        fullbody: null,
+        handwrist: null,
+        feet: null
       }
     })
 }));

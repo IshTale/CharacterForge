@@ -21,3 +21,8 @@ export interface FileIds {
   handwrist: string | null;
   feet: string | null;
 }
+
+export interface CanvasAssetState {
+  basePhotos: BasePhotos;
+  fileIds: FileIds;
+}

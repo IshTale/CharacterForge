@@ -1,8 +1,27 @@
 import type { Recipe } from "@/types/recipe";
 
-export function validateRecipeSchema(recipe: Recipe) {
-  if (!recipe.schema_version) {
-    throw new Error("schema_version is required");
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function validateRecipeSchema(recipe: unknown): Recipe {
+  if (!isObject(recipe)) {
+    throw new Error("Recipe must be an object.");
   }
-  return recipe;
+  if (recipe.schema_version !== "1.0") {
+    throw new Error("schema_version must be '1.0'.");
+  }
+  if (!isObject(recipe.wardrobe) || !Array.isArray(recipe.wardrobe.items)) {
+    throw new Error("wardrobe.items must be an array.");
+  }
+  if (!isObject(recipe.makeup) || typeof recipe.makeup.type !== "string") {
+    throw new Error("makeup.type is required.");
+  }
+  if (!isObject(recipe.hair) || !isObject(recipe.nails) || !isObject(recipe.jewelry)) {
+    throw new Error("hair, nails, and jewelry are required.");
+  }
+  if (typeof recipe.created_at !== "string") {
+    throw new Error("created_at is required.");
+  }
+  return recipe as unknown as Recipe;
 }
