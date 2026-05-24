@@ -1,32 +1,19 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { KvCache } from "@/lib/storage/kv";
 import type { Recipe } from "@/types/recipe";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
-const RECIPES_FILE = path.join(DATA_DIR, "recipes.json");
+const kvCache = new KvCache();
 
 interface RecipeRecord extends Recipe {
   recipe_id: string;
 }
 
-async function ensureStore() {
-  await mkdir(DATA_DIR, { recursive: true });
-  try {
-    await readFile(RECIPES_FILE, "utf8");
-  } catch {
-    await writeFile(RECIPES_FILE, "[]", "utf8");
-  }
-}
-
 async function loadAll(): Promise<RecipeRecord[]> {
-  await ensureStore();
-  const raw = await readFile(RECIPES_FILE, "utf8");
-  return JSON.parse(raw) as RecipeRecord[];
+  return (await kvCache.listRecipes()) as RecipeRecord[];
 }
 
 async function saveAll(recipes: RecipeRecord[]) {
-  await writeFile(RECIPES_FILE, JSON.stringify(recipes, null, 2), "utf8");
+  await kvCache.saveRecipes(recipes);
 }
 
 export async function listRecipes() {

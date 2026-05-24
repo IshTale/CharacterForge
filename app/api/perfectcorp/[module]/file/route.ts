@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { createHash, randomUUID } from "node:crypto";
 import { MODULE_CONFIG } from "@/constants/api-modules";
-import { registerFile } from "@/lib/perfectcorp/file-registry";
+import { BlobStorage } from "@/lib/storage/blob";
+import { KvCache } from "@/lib/storage/kv";
 import { ImageValidator } from "@/lib/validation/upload";
 
 interface RouteContext {
@@ -39,15 +41,34 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const registered = registerFile({
-    filename: file.name,
-    mimeType: file.type,
-    size: file.size
-  });
+  const blobStorage = new BlobStorage();
+  const kvCache = new KvCache();
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const cacheKey = `${module}:${hash}`;
+
+  const cachedFileId = await kvCache.getFileId(cacheKey);
+  if (cachedFileId) {
+    const cachedUrl = await kvCache.getFileUrl(cachedFileId);
+    return NextResponse.json({
+      module,
+      file_id: cachedFileId,
+      public_url: cachedUrl
+    });
+  }
+
+  const fileId = `file_${randomUUID()}`;
+  const publicUrl = await blobStorage.upload(
+    `${module}/${fileId}-${file.name}`,
+    bytes,
+    file.type || "application/octet-stream"
+  );
+  await kvCache.setFileId(cacheKey, fileId);
+  await kvCache.setFileUrl(fileId, publicUrl);
 
   return NextResponse.json({
     module,
-    file_id: registered.file_id,
-    public_url: `https://example.characterforge.local/${registered.file_id}`
+    file_id: fileId,
+    public_url: publicUrl
   });
 }

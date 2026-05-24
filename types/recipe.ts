@@ -16,6 +16,29 @@ export interface MakeupConfig {
   type: "custom" | "preset";
   color_hex?: string;
   intensity?: number;
+  selected_region?: MakeupRegion;
+  effects?: Partial<Record<MakeupRegion, MakeupEffectSelection>>;
+}
+
+export type MakeupRegion =
+  | "foundation"
+  | "concealer"
+  | "blush"
+  | "bronzer"
+  | "contour"
+  | "highlighter"
+  | "eyebrows"
+  | "eye_shadow"
+  | "eye_liner"
+  | "eyelashes"
+  | "lip_color"
+  | "lip_liner"
+  | "skin_smooth";
+
+export interface MakeupEffectSelection {
+  pattern: string;
+  color: string;
+  design: string;
 }
 
 export interface HairConfig {
