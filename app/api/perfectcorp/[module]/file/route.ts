@@ -2,21 +2,31 @@ import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "node:crypto";
 import { MODULE_CONFIG } from "@/constants/api-modules";
 import { BlobStorage } from "@/lib/storage/blob";
+import { resolveUploadBaseUrl } from "@/lib/storage/local-uploads";
 import { KvCache } from "@/lib/storage/kv";
+import { assertSupportedImageMime } from "@/lib/validation/mime";
 import { ImageValidator } from "@/lib/validation/upload";
 
 interface RouteContext {
   params: Promise<{ module: string }>;
 }
 
+/** Accessory reference uploads only (not base canvas photos). */
+const ACCESSORY_ONLY_MODULES = new Set([
+  "hat",
+  "bag",
+  "ring",
+  "bracelet",
+  "watch",
+  "necklace"
+]);
+
 function validateByCanvas(
   canvas: "headshot" | "fullbody" | "handwrist" | "feet",
-  file: { type: string; size: number }
+  file: { type: string; size: number; name: string },
+  bytes: Uint8Array
 ) {
-  if (canvas === "headshot") ImageValidator.validateHeadshot(file);
-  if (canvas === "fullbody") ImageValidator.validateFullBody(file);
-  if (canvas === "handwrist") ImageValidator.validateHandWrist(file);
-  if (canvas === "feet") ImageValidator.validateFeet(file);
+  ImageValidator.validateCanvasBuffer(canvas, file, bytes);
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -32,8 +42,19 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Missing file form field." }, { status: 400 });
   }
 
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const byteView = new Uint8Array(bytes);
+
+  let contentType: string;
   try {
-    validateByCanvas(moduleConfig.sourceCanvas, { type: file.type, size: file.size });
+    contentType = assertSupportedImageMime(file.type, file.name, byteView);
+    const fileLike = { type: contentType, size: file.size, name: file.name };
+
+    if (ACCESSORY_ONLY_MODULES.has(module)) {
+      ImageValidator.validateAccessory(fileLike, byteView);
+    } else {
+      validateByCanvas(moduleConfig.sourceCanvas, fileLike, byteView);
+    }
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid upload." },
@@ -41,9 +62,7 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const blobStorage = new BlobStorage();
   const kvCache = new KvCache();
-  const bytes = Buffer.from(await file.arrayBuffer());
   const hash = createHash("sha256").update(bytes).digest("hex");
   const cacheKey = `${module}:${hash}`;
 
@@ -58,17 +77,29 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const fileId = `file_${randomUUID()}`;
-  const publicUrl = await blobStorage.upload(
-    `${module}/${fileId}-${file.name}`,
-    bytes,
-    file.type || "application/octet-stream"
-  );
-  await kvCache.setFileId(cacheKey, fileId);
-  await kvCache.setFileUrl(fileId, publicUrl);
+  const baseUrl = resolveUploadBaseUrl(request);
 
-  return NextResponse.json({
-    module,
-    file_id: fileId,
-    public_url: publicUrl
-  });
+  try {
+    const blobStorage = new BlobStorage();
+    const publicUrl = await blobStorage.upload(
+      `${module}/${fileId}-${file.name}`,
+      bytes,
+      contentType,
+      { fileId, baseUrl }
+    );
+    await kvCache.setFileId(cacheKey, fileId);
+    await kvCache.setFileUrl(fileId, publicUrl);
+
+    return NextResponse.json({
+      module,
+      file_id: fileId,
+      public_url: publicUrl
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Upload storage failed. Set BLOB_READ_WRITE_TOKEN or use local dev mode.";
+    return NextResponse.json({ error: message }, { status: 503 });
+  }
 }

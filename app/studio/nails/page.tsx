@@ -1,9 +1,38 @@
 "use client";
 
-import HandMapSelector from "@/components/studio/nails/HandMapSelector";
-import JewelryPanel from "@/components/studio/nails/JewelryPanel";
-import NailConfigPanel from "@/components/studio/nails/NailConfigPanel";
+import { useState } from "react";
+import JewelrySlotPanel from "@/components/studio/nails/JewelrySlotPanel";
+import NailStylePanel from "@/components/studio/nails/NailStylePanel";
+import { JEWELRY_SLOTS } from "@/constants/jewelry-slots";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
+import { activeNailStyle, createDefaultNailsConfig } from "@/types/nails";
+import type { JewelryConfig, NailsConfig } from "@/types/recipe";
+
+function ensureNailsConfig(nails: NailsConfig | undefined): NailsConfig {
+  if (nails?.global) {
+    return nails;
+  }
+  const legacy = nails as NailsConfig & {
+    color_hex?: string;
+    intensity?: number;
+    texture?: string;
+    custom_texture_url?: string;
+  };
+  if (legacy?.color_hex || legacy?.texture || legacy?.custom_texture_url) {
+    return {
+      apply_to: legacy.apply_to ?? "all",
+      global: {
+        color_hex: legacy.color_hex,
+        intensity: legacy.intensity,
+        texture: (legacy.texture as NailsConfig["global"]["texture"]) ?? "custom",
+        custom_texture_url: legacy.custom_texture_url,
+        shape: "oval"
+      },
+      overrides: legacy.overrides ?? {}
+    };
+  }
+  return createDefaultNailsConfig();
+}
 
 export default function NailsPage() {
   const recipe = useCharacterForgeStore((state) => state.recipe);
@@ -12,62 +41,125 @@ export default function NailsPage() {
   const triggerRender = useCharacterForgeStore((state) => state.triggerRender);
   const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
 
+  const nails = ensureNailsConfig(recipe.nails);
+  const jewelry = recipe.jewelry;
+
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  const nailReady = Boolean(activeNailStyle(nails).custom_texture_url);
+
+  const setJewelryRef = (slotId: "ring" | "bracelet" | "watch" | "necklace", url: string | null) => {
+    updateRecipe((current) => {
+      const nextJewelry: JewelryConfig = { ...current.jewelry };
+      if (slotId === "ring") {
+        nextJewelry.rings = url ? [{ finger: "ring", ref_image_url: url }] : [];
+      } else if (slotId === "bracelet") {
+        nextJewelry.bracelets = url ? [{ wrist: "left", ref_image_url: url }] : [];
+      } else if (slotId === "watch") {
+        nextJewelry.watch = url ? { wrist: "left", ref_image_url: url } : null;
+      } else {
+        nextJewelry.necklace = url ? { ref_image_url: url } : null;
+      }
+      return { ...current, jewelry: nextJewelry };
+    });
+    markDirty("nails");
+  };
+
+  const jewelryRefBySlot = {
+    ring: jewelry.rings[0]?.ref_image_url ?? null,
+    bracelet: jewelry.bracelets[0]?.ref_image_url ?? null,
+    watch: jewelry.watch?.ref_image_url ?? null,
+    necklace: jewelry.necklace?.ref_image_url ?? null
+  };
+
+  const handleApplyNails = async () => {
+    setApplyError(null);
+    setApplying(true);
+    try {
+      await triggerRender(["nails"]);
+    } catch (error) {
+      setApplyError(error instanceof Error ? error.message : "Failed to apply nails.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    setPublishError(null);
+    setPublishing(true);
+    try {
+      const recipeId = await publishRecipe();
+      alert(`Published recipe ${recipeId}`);
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "Failed to publish recipe.");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Nails & Jewelry</h1>
-      <HandMapSelector
-        selected={recipe.nails.apply_to}
-        onSelect={(finger) => {
-          updateRecipe((current) => ({
-            ...current,
-            nails: { ...current.nails, apply_to: finger }
-          }));
-          markDirty("nails");
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold text-white">Nails</h1>
+        <p className="text-sm text-gray-400">
+          Choose all fingers or one finger, upload nail art, then apply. Jewelry is optional and
+          configured separately below.
+        </p>
+      </header>
+
+      <NailStylePanel
+        config={nails}
+        onChange={(next) => {
+          updateRecipe((current) => ({ ...current, nails: next }));
         }}
+        onDirty={() => markDirty("nails")}
       />
-      <NailConfigPanel
-        color={recipe.nails.color_hex ?? "#ff4fa3"}
-        intensity={recipe.nails.intensity ?? 60}
-        texture={recipe.nails.texture ?? "gloss"}
-        onColorChange={(color) => {
-          updateRecipe((current) => ({
-            ...current,
-            nails: { ...current.nails, color_hex: color }
-          }));
-          markDirty("nails");
-        }}
-        onIntensityChange={(value) => {
-          updateRecipe((current) => ({
-            ...current,
-            nails: { ...current.nails, intensity: value }
-          }));
-          markDirty("nails");
-        }}
-        onTextureChange={(texture) => {
-          updateRecipe((current) => ({
-            ...current,
-            nails: { ...current.nails, texture }
-          }));
-          markDirty("nails");
-        }}
-      />
-      <JewelryPanel />
+
+      {applyError && <p className="text-sm text-red-400">{applyError}</p>}
+
       <button
         type="button"
-        onClick={() => triggerRender(["nails"])}
-        className="rounded bg-white px-4 py-2 text-black"
+        onClick={handleApplyNails}
+        disabled={applying || !nailReady}
+        className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-60"
       >
-        Apply Nails & Jewelry
+        {applying ? "Applying nails…" : "Apply nails"}
       </button>
+
+      <section className="space-y-4 border-t border-gray-800 pt-8">
+        <header className="space-y-1">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">
+            Jewelry (optional)
+          </h2>
+          <p className="text-xs text-gray-500">
+            Ring, bracelet, watch, and necklace reference uploads — separate from nail VTO.
+          </p>
+        </header>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {JEWELRY_SLOTS.map((slot) => (
+            <JewelrySlotPanel
+              key={slot.id}
+              slotId={slot.id}
+              refImageUrl={jewelryRefBySlot[slot.id]}
+              onChange={(url) => setJewelryRef(slot.id, url)}
+              onDirty={() => markDirty("nails")}
+            />
+          ))}
+        </div>
+      </section>
+
+      {publishError && <p className="text-sm text-red-400">{publishError}</p>}
+
       <button
         type="button"
-        onClick={async () => {
-          const recipeId = await publishRecipe();
-          alert(`Published recipe ${recipeId}`);
-        }}
-        className="rounded border border-gray-500 px-4 py-2"
+        onClick={handlePublish}
+        disabled={publishing}
+        className="rounded-lg border border-gray-600 px-5 py-2.5 text-sm font-medium text-gray-200 transition hover:border-gray-500 disabled:opacity-60"
       >
-        Publish Recipe
+        {publishing ? "Publishing…" : "Publish recipe"}
       </button>
     </div>
   );

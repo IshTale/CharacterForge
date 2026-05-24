@@ -5,7 +5,9 @@ import { runWardrobePipeline } from "@/lib/wardrobe/run-wardrobe-pipeline";
 import { validateEffects } from "@/lib/perfectcorp/modules/makeup";
 import type { CanvasKey, CanvasState } from "@/types/canvas";
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
+import { hairHasSelection } from "@/lib/hair/normalize-hair-config";
 import type { Recipe } from "@/types/recipe";
+import { createDefaultNailsConfig } from "@/types/nails";
 import { createDefaultWardrobeConfig } from "@/types/wardrobe";
 import type { CanvasSlice } from "@/store/canvas.slice";
 import type { RecipeSlice } from "@/store/recipe.slice";
@@ -21,8 +23,8 @@ const defaultRecipe: Recipe = {
   created_at: new Date().toISOString(),
   wardrobe: createDefaultWardrobeConfig(),
   makeup: { type: "custom" },
-  hair: { style: null, color: null, extension: null, bangs: null, volume: null },
-  nails: { apply_to: "all" },
+  hair: { transfer: null, color: null },
+  nails: createDefaultNailsConfig(),
   jewelry: { rings: [], bracelets: [], watch: null, necklace: null }
 };
 
@@ -189,6 +191,28 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       } catch (error) {
         canvases.forEach((canvas) => get().setCanvasStatus(canvas, "error"));
         throw error;
+      }
+    }
+
+    if (moduleList.includes("hair")) {
+      if (!get().fileIds.headshot) {
+        throw new Error("Upload a headshot before applying hair.");
+      }
+      if (!hairHasSelection(get().recipe.hair)) {
+        throw new Error("Select at least one hair effect before applying.");
+      }
+    }
+
+    if (moduleList.includes("nails")) {
+      if (!get().fileIds.handwrist) {
+        throw new Error("Upload a hand & wrist photo before applying nails.");
+      }
+      const nails = get().recipe.nails;
+      const hasArt =
+        nails.global?.custom_texture_url ||
+        Object.values(nails.overrides ?? {}).some((o) => o?.custom_texture_url);
+      if (!hasArt) {
+        throw new Error("Upload nail art for the selected coverage before applying.");
       }
     }
 

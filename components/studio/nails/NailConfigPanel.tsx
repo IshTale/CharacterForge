@@ -20,7 +20,7 @@ export default function NailConfigPanel({
   onTextureChange
 }: NailConfigPanelProps) {
   return (
-    <section className="space-y-3 rounded border border-gray-700 p-3">
+    <section className="space-y-4 rounded-xl border border-gray-700 bg-gray-900/40 p-4 shadow-lg">
       <ColorPicker value={color} onChange={onColorChange} />
       <IntensitySlider value={intensity} onChange={onIntensityChange} />
       <TextureSelector selected={texture} onSelect={onTextureChange} />

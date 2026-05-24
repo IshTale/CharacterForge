@@ -20,6 +20,9 @@ export function validateRecipeSchema(recipe: unknown): Recipe {
   if (!isObject(recipe.hair) || !isObject(recipe.nails) || !isObject(recipe.jewelry)) {
     throw new Error("hair, nails, and jewelry are required.");
   }
+  if (!isObject((recipe.nails as Record<string, unknown>).global)) {
+    throw new Error("nails.global is required.");
+  }
   if (typeof recipe.created_at !== "string") {
     throw new Error("created_at is required.");
   }

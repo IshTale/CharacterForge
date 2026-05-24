@@ -1,5 +1,16 @@
+import type { HairColorSelection, HairTransferSelection } from "@/types/hair";
 import type { MakeupApiEffect } from "@/types/makeup-api";
+import type { NailsConfig } from "@/types/nails";
 import type { WardrobeConfig } from "@/types/wardrobe";
+
+export type { NailsConfig, NailFinger, NailFingerStyle, NailShape, NailTexture } from "@/types/nails";
+export type {
+  HairCatalogStyle,
+  HairStyleGroup,
+  HairColorSelection,
+  HairTransferSelection,
+  HairTransferTemplate
+} from "@/types/hair";
 
 export type { WardrobeConfig, WardrobeSlotId, WardrobeSlotState } from "@/types/wardrobe";
 
@@ -57,18 +68,12 @@ export interface MakeupEffectSelection {
 }
 
 export interface HairConfig {
-  style: { style_group_id: string; style_id: string; title?: string } | null;
-  color: { style_group_id: string; style_id: string; title?: string } | null;
-  extension: { style_group_id: string; style_id: string; title?: string } | null;
-  bangs: { style_group_id: string; style_id: string; title?: string } | null;
-  volume: { style_group_id: string; style_id: string; title?: string } | null;
-}
-
-export interface NailsConfig {
-  apply_to: "all" | "thumb" | "index" | "middle" | "ring" | "pinky";
-  color_hex?: string;
-  intensity?: number;
-  texture?: string;
+  /** v2.1 hair-transfer: template or custom reference photo */
+  transfer: HairTransferSelection | null;
+  /** Custom hair color (hex + intensity) */
+  color: HairColorSelection | null;
+  /** Active studio section in the UI */
+  selected_section?: "hairstyle" | "color";
 }
 
 export interface JewelryConfig {

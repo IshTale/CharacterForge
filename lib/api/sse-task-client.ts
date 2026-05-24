@@ -110,7 +110,11 @@ export async function uploadModuleFile(
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(payload.error ?? `Upload failed for ${module}.`);
+    const fallback =
+      response.status === 503
+        ? "Upload storage is not configured. Add BLOB_READ_WRITE_TOKEN to .env.local or use local dev uploads."
+        : `Upload failed for ${module} (${response.status}).`;
+    throw new Error(payload.error ?? fallback);
   }
   return (await response.json()) as { file_id: string; public_url?: string };
 }

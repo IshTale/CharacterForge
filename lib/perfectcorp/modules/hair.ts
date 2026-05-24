@@ -1,4 +1,10 @@
 import { randomUUID } from "node:crypto";
+import {
+  fetchHairStyleGroups,
+  fetchHairStylesForGroup,
+  fetchHairTransferTemplates,
+  type HairV1Module
+} from "@/lib/perfectcorp/hair-catalog";
 
 export async function runHairPipeline() {
   return { result_url: null as string | null };
@@ -24,6 +30,13 @@ export async function applyHairVolume() {
   return { dst_id: `hair_vol_${randomUUID()}` };
 }
 
-export async function fetchHairStyles() {
-  return [] as Array<{ id: string; title: string; thumbnailUrl: string }>;
+export async function fetchHairTransferCatalog(pageSize = 20, startingToken?: string) {
+  return fetchHairTransferTemplates(pageSize, startingToken);
+}
+
+export async function fetchHairV1Catalog(module: HairV1Module, styleGroupId?: string) {
+  if (styleGroupId) {
+    return fetchHairStylesForGroup(module, styleGroupId);
+  }
+  return fetchHairStyleGroups(module);
 }

@@ -8,26 +8,26 @@ interface HandMapSelectorProps {
   onSelect: (finger: Finger) => void;
 }
 
+const OPTIONS: Array<{ id: Finger; label: string }> = [
+  { id: "all", label: "All" },
+  ...FINGERS.map((finger) => ({ id: finger, label: finger }))
+];
+
 export default function HandMapSelector({ selected, onSelect }: HandMapSelectorProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        className={`rounded border px-2 py-1 text-xs ${selected === "all" ? "border-white" : "border-gray-700"}`}
-        onClick={() => onSelect("all")}
-      >
-        all
-      </button>
-      {FINGERS.map((finger) => (
+    <div className="inline-flex flex-wrap gap-2 rounded-lg border border-gray-700 p-1">
+      {OPTIONS.map((option) => (
         <button
-          key={finger}
+          key={option.id}
           type="button"
-          className={`rounded border px-2 py-1 text-xs ${
-            selected === finger ? "border-white" : "border-gray-700"
+          onClick={() => onSelect(option.id)}
+          className={`rounded-md px-4 py-1.5 text-xs font-medium capitalize transition ${
+            selected === option.id
+              ? "bg-white text-black"
+              : "text-gray-400 hover:text-gray-200"
           }`}
-          onClick={() => onSelect(finger)}
         >
-          {finger}
+          {option.label}
         </button>
       ))}
     </div>
