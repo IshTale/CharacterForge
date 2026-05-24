@@ -1,18 +1,7 @@
 import type { MakeupApiEffect } from "@/types/makeup-api";
+import type { WardrobeConfig } from "@/types/wardrobe";
 
-export interface WardrobeItem {
-  item_id: string;
-  type: "upper_body" | "lower_body" | "dresses" | "full_body";
-  prompt: string;
-  generated_image_url?: string;
-}
-
-export interface WardrobeConfig {
-  items: WardrobeItem[];
-  hat_ref_image_url?: string;
-  bag_ref_image_url?: string;
-  shoes_ref_image_url?: string;
-}
+export type { WardrobeConfig, WardrobeSlotId, WardrobeSlotState } from "@/types/wardrobe";
 
 export interface MakeupConfig {
   type: "custom" | "preset";

@@ -11,8 +11,8 @@ export function validateRecipeSchema(recipe: unknown): Recipe {
   if (recipe.schema_version !== "1.0") {
     throw new Error("schema_version must be '1.0'.");
   }
-  if (!isObject(recipe.wardrobe) || !Array.isArray(recipe.wardrobe.items)) {
-    throw new Error("wardrobe.items must be an array.");
+  if (!isObject(recipe.wardrobe) || typeof recipe.wardrobe.gender !== "string") {
+    throw new Error("wardrobe.gender is required.");
   }
   if (!isObject(recipe.makeup) || typeof recipe.makeup.type !== "string") {
     throw new Error("makeup.type is required.");

@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { buildMakeupEffects } from "@/lib/makeup/build-effects";
 import { runMakeupVto } from "@/lib/makeup/run-makeup-vto";
+import { runWardrobePipeline } from "@/lib/wardrobe/run-wardrobe-pipeline";
 import { validateEffects } from "@/lib/perfectcorp/modules/makeup";
 import type { CanvasKey, CanvasState } from "@/types/canvas";
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
 import type { Recipe } from "@/types/recipe";
+import { createDefaultWardrobeConfig } from "@/types/wardrobe";
 import type { CanvasSlice } from "@/store/canvas.slice";
 import type { RecipeSlice } from "@/store/recipe.slice";
 
@@ -17,7 +19,7 @@ const createEmptyCanvas = (): CanvasState => ({
 const defaultRecipe: Recipe = {
   schema_version: "1.0",
   created_at: new Date().toISOString(),
-  wardrobe: { items: [] },
+  wardrobe: createDefaultWardrobeConfig(),
   makeup: { type: "custom" },
   hair: { style: null, color: null, extension: null, bangs: null, volume: null },
   nails: { apply_to: "all" },
@@ -31,7 +33,7 @@ export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
 }
 
 const moduleToCanvas: Record<string, CanvasKey[]> = {
-  wardrobe: ["fullbody"],
+  wardrobe: ["fullbody", "headshot", "feet"],
   makeup: ["headshot"],
   hair: ["headshot"],
   nails: ["handwrist", "headshot"],
@@ -121,7 +123,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }),
   triggerRender: async (modules: string[]) => {
     const moduleList = [...modules];
-    const stubModules = moduleList.filter((name) => name !== "makeup");
+    const stubModules = moduleList.filter((name) => name !== "makeup" && name !== "wardrobe");
 
     if (moduleList.includes("makeup")) {
       const headshotFileId = get().fileIds.headshot;
@@ -157,6 +159,35 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         });
       } catch (error) {
         get().setCanvasStatus("headshot", "error");
+        throw error;
+      }
+    }
+
+    if (moduleList.includes("wardrobe")) {
+      const canvases: CanvasKey[] = ["fullbody", "headshot", "feet"];
+      canvases.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
+
+      try {
+        const wardrobe = get().recipe.wardrobe;
+        const fileIds = get().fileIds;
+        const result = await runWardrobePipeline(wardrobe, {
+          headshot: fileIds.headshot,
+          fullbody: fileIds.fullbody,
+          feet: fileIds.feet
+        });
+
+        for (const [canvas, url] of Object.entries(result.canvasResults)) {
+          if (url) {
+            get().setCanvasImage(canvas as CanvasKey, url);
+          }
+          get().appendTaskResult(canvas as CanvasKey, {
+            task_id: result.task_ids.join("-") || `wardrobe-${Date.now()}`,
+            task_status: "success",
+            result_url: url ?? undefined
+          });
+        }
+      } catch (error) {
+        canvases.forEach((canvas) => get().setCanvasStatus(canvas, "error"));
         throw error;
       }
     }
