@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
+import {
+  extractRecipeForReplay,
+  toRecipeListItems
+} from "@/lib/recipe/publishing";
 import { KvCache } from "@/lib/storage/kv";
-import type { Recipe } from "@/types/recipe";
+import type { PublishedRecipe, Recipe, RecipeListItem } from "@/types/recipe";
 
 const kvCache = new KvCache();
 
@@ -16,9 +20,10 @@ async function saveAll(recipes: RecipeRecord[]) {
   await kvCache.saveRecipes(recipes);
 }
 
-export async function listRecipes() {
+export async function listRecipes(): Promise<RecipeListItem[]> {
   const recipes = await loadAll();
-  return recipes.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const sorted = recipes.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  return toRecipeListItems(sorted);
 }
 
 export async function createRecipe(input: Recipe) {
@@ -33,9 +38,11 @@ export async function createRecipe(input: Recipe) {
   return recipe;
 }
 
-export async function getRecipe(recipeId: string) {
+export async function getRecipe(recipeId: string): Promise<PublishedRecipe | null> {
   const recipes = await loadAll();
-  return recipes.find((recipe) => recipe.recipe_id === recipeId) ?? null;
+  const record = recipes.find((recipe) => recipe.recipe_id === recipeId);
+  if (!record) return null;
+  return extractRecipeForReplay(record);
 }
 
 export async function updateRecipe(

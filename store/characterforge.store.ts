@@ -11,6 +11,7 @@ import { jewelryHasSelection } from "@/lib/jewelry/build-pipeline";
 import { runJewelryPipeline } from "@/lib/jewelry/run-jewelry-pipeline";
 import { runNailVto } from "@/lib/nails/run-nail-vto";
 import { activeNailStyle } from "@/types/nails";
+import { prepareRecipeForPublish } from "@/lib/recipe/publishing";
 import type { Recipe } from "@/types/recipe";
 import { createDefaultNailsConfig } from "@/types/nails";
 import { createDefaultWardrobeConfig } from "@/types/wardrobe";
@@ -316,7 +317,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     const response = await fetch("/api/recipes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(get().recipe)
+      body: JSON.stringify(prepareRecipeForPublish(get().recipe))
     });
     if (!response.ok) {
       throw new Error("Failed to publish recipe.");

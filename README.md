@@ -6,6 +6,10 @@ UI/UX Specification
 CharacterForge is a gamified, crowdsourced e-commerce platform designed for the cosplay,
 theatrical, and SFX communities. It operates on a "design, try-on, pre-order" model.
 
+The app homepage (`/`) is the **community dashboard** — a grid of published recipes. Creator
+flow starts at `/studio`. See [docs/recipe-publishing.md](docs/recipe-publishing.md) for how
+publish, storage (`recipes:all` in Vercel KV), and extraction (list vs full recipe) work.
+
 The frontend relies on high-fidelity, static-image processing ("The Digital Canvas") rather than
 live-webcam AR, ensuring precise layering of user-generated components. The core output is a
 reusable "Recipe" of isolated design components that any user can map onto their own photos.
@@ -127,7 +131,12 @@ preview screen displays a 4-pane grid showing the completed look:
 
 Data Storage Strategy: "The Recipe"
 
-When the user clicks "Publish to Dashboard":
+When the user clicks "Publish recipe" in the studio (see `publishRecipe` in the Zustand store
+and `POST /api/recipes`):
+
+Implementation detail: [docs/recipe-publishing.md](docs/recipe-publishing.md).
+
+When the user clicks "Publish to Dashboard" (product spec):
 
 ●  What is NOT stored: The final 4 composite images containing the user's actual body/face
 

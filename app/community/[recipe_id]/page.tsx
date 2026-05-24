@@ -1,17 +1,10 @@
-import { getRecipe } from "@/lib/recipe/repository";
+import { redirect } from "next/navigation";
 
-interface RecipePageProps {
+interface LegacyRecipeRouteProps {
   params: Promise<{ recipe_id: string }>;
 }
 
-export default async function RecipePage({ params }: RecipePageProps) {
+export default async function LegacyCommunityRecipePage({ params }: LegacyRecipeRouteProps) {
   const { recipe_id } = await params;
-  const recipe = await getRecipe(recipe_id);
-
-  return (
-    <main className="mx-auto max-w-5xl p-10">
-      <h1 className="text-3xl font-semibold">Recipe Try-On</h1>
-      <p className="mt-2 text-gray-300">Viewing recipe: {recipe?.title ?? recipe_id}</p>
-    </main>
-  );
+  redirect(`/recipes/${recipe_id}`);
 }

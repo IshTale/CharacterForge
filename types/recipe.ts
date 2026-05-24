@@ -99,3 +99,14 @@ export interface Recipe {
   nails: NailsConfig;
   jewelry: JewelryConfig;
 }
+
+/** Persisted community document (server-assigned recipe_id). */
+export type PublishedRecipe = Recipe & { recipe_id: string };
+
+/** Community grid / GET /api/recipes list entries — no module payloads. */
+export interface RecipeListItem {
+  recipe_id: string;
+  schema_version: "1.0";
+  created_at: string;
+  title?: string;
+}
