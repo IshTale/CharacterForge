@@ -1,3 +1,5 @@
+import type { MakeupApiEffect } from "@/types/makeup-api";
+
 export interface WardrobeItem {
   item_id: string;
   type: "upper_body" | "lower_body" | "dresses" | "full_body";
@@ -17,7 +19,10 @@ export interface MakeupConfig {
   color_hex?: string;
   intensity?: number;
   selected_region?: MakeupRegion;
+  /** Studio UI state keyed by face region. */
   effects?: Partial<Record<MakeupRegion, MakeupEffectSelection>>;
+  /** Last-built makeup-vto payload (synced on apply). */
+  api_effects?: MakeupApiEffect[];
 }
 
 export type MakeupRegion =
@@ -36,9 +41,30 @@ export type MakeupRegion =
   | "skin_smooth";
 
 export interface MakeupEffectSelection {
+  /** Pattern or shape label from the Perfect Corp catalog (e.g. 2colors6, plump). */
   pattern: string;
-  color: string;
-  design: string;
+  /** One hex per palette slot; length must match the selected pattern's colorNum when applicable. */
+  colors: string[];
+  /** Per-palette colorIntensity (0–100), aligned with `colors`. */
+  colorIntensities: number[];
+  /** @deprecated Use colorIntensities */
+  colorIntensity?: number;
+  skinSmoothStrength?: number;
+  skinSmoothColorIntensity?: number;
+  glowIntensity?: number;
+  coverageIntensity?: number;
+  colorUnderEyeIntensity?: number;
+  coverageLevel?: number;
+  shimmerIntensity?: number;
+  shimmerDensity?: number;
+  shimmerSize?: number;
+  lipFullness?: number;
+  lipWrinkless?: number;
+  lipLinerThickness?: number;
+  lipLinerSmoothness?: number;
+  eyebrowCurvature?: number;
+  eyebrowThickness?: number;
+  eyebrowDefinition?: number;
 }
 
 export interface HairConfig {

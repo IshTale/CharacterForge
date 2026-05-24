@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import ColorCategoryFilter from "@/components/studio/makeup/ColorCategoryFilter";
 import ColorPicker from "@/components/studio/makeup/ColorPicker";
 import FaceRegionMap from "@/components/studio/makeup/FaceRegionMap";
+import IntensitySlider from "@/components/studio/makeup/IntensitySlider";
 import MakeupEffectPanel from "@/components/studio/makeup/MakeupEffectPanel";
 import PatternSelector from "@/components/studio/makeup/PatternSelector";
+import { REGION_CATALOG } from "@/constants/makeup-catalogs";
+import { legacyColorsFromEffect, normalizeColors, normalizeIntensities } from "@/lib/makeup/colors";
+import { useMakeupPatterns } from "@/lib/makeup/use-makeup-patterns";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
+import type { MakeupPatternEntry } from "@/types/makeup";
 import type { MakeupEffectSelection, MakeupRegion } from "@/types/recipe";
 
 const REGION_LABEL: Record<MakeupRegion, string> = {
@@ -23,44 +30,54 @@ const REGION_LABEL: Record<MakeupRegion, string> = {
   skin_smooth: "Skin Smooth"
 };
 
-const REGION_PATTERNS: Record<MakeupRegion, string[]> = {
-  foundation: ["even-matte", "natural-dewy", "photo-ready"],
-  concealer: ["under-eye-soft", "full-coverage", "bright-focus"],
-  blush: ["1color1", "2colors6", "2colors1"],
-  bronzer: ["soft-warm", "sun-kissed", "deep-sculpt"],
-  contour: ["cheek-lift", "jawline", "full-contour"],
-  highlighter: ["liquid-glow", "powder-sheen", "glass-skin"],
-  eyebrows: ["soft-arch", "defined-arch", "feathered"],
-  eye_shadow: ["mono-smoke", "cut-crease", "halo-eye"],
-  eye_liner: ["classic-wing", "fox-eye", "graphic-line"],
-  eyelashes: ["natural", "volume", "dramatic"],
-  lip_color: ["matte-solid", "glossy-plump", "ombre"],
-  lip_liner: ["sharp-outline", "soft-outline", "overline"],
-  skin_smooth: ["light-smooth", "balanced-smooth", "full-smooth"]
-};
-
-const REGION_DESIGNS: Record<MakeupRegion, string[]> = {
-  foundation: ["neutral", "warm", "cool"],
-  concealer: ["bright", "match-tone", "spot-correct"],
-  blush: ["round", "lifted", "draped"],
-  bronzer: ["temple-focus", "cheek-focus", "full-warmth"],
-  contour: ["subtle", "sculpted", "editorial"],
-  highlighter: ["cheekbone", "bridge", "all-points"],
-  eyebrows: ["natural-hair", "powder-fill", "laminated"],
-  eye_shadow: ["single-tone", "gradient", "sparkle"],
-  eye_liner: ["thin", "cat-eye", "double-wing"],
-  eyelashes: ["wispy", "cat-lash", "full-fan"],
-  lip_color: ["full-fill", "gradient-center", "stain"],
-  lip_liner: ["defined-edge", "soft-blend", "plump-edge"],
-  skin_smooth: ["texture-retain", "balanced", "airbrush"]
-};
-
 function defaultEffect(region: MakeupRegion): MakeupEffectSelection {
+  if (region === "skin_smooth") {
+    return {
+      pattern: "",
+      colors: [],
+      colorIntensities: [],
+      skinSmoothStrength: 50,
+      skinSmoothColorIntensity: 45
+    };
+  }
+
   return {
-    pattern: REGION_PATTERNS[region][0],
-    color: "#e27f7f",
-    design: REGION_DESIGNS[region][0]
+    pattern: "",
+    colors: normalizeColors(undefined, 1),
+    colorIntensities: normalizeIntensities(undefined, 1)
   };
+}
+
+function resolveEffect(
+  region: MakeupRegion,
+  effect: MakeupEffectSelection | undefined
+): MakeupEffectSelection {
+  const base = defaultEffect(region);
+  if (!effect) {
+    return base;
+  }
+
+  const legacyColors = legacyColorsFromEffect(
+    effect as MakeupEffectSelection & { color?: string }
+  );
+  const colorCount =
+    region === "skin_smooth" ? 0 : Math.max(legacyColors?.length ?? effect.colors.length, 1);
+
+  return {
+    ...base,
+    ...effect,
+    colors: normalizeColors(legacyColors ?? effect.colors, colorCount),
+    colorIntensities: normalizeIntensities(
+      effect.colorIntensities ??
+        (effect.colorIntensity != null ? [effect.colorIntensity] : undefined),
+      colorCount
+    )
+  };
+}
+
+function uniquePatternCategories(patterns: MakeupPatternEntry[]): string[] {
+  const categories = new Set(patterns.map((pattern) => pattern.category));
+  return Array.from(categories).sort((a, b) => a.localeCompare(b));
 }
 
 export default function MakeupPage() {
@@ -68,11 +85,51 @@ export default function MakeupPage() {
   const updateRecipe = useCharacterForgeStore((state) => state.updateRecipe);
   const markDirty = useCharacterForgeStore((state) => state.markDirty);
   const triggerRender = useCharacterForgeStore((state) => state.triggerRender);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+
   const selectedRegion = recipe.makeup.selected_region ?? "foundation";
-  const selectedEffect = recipe.makeup.effects?.[selectedRegion] ?? defaultEffect(selectedRegion);
+  const selectedEffect = resolveEffect(
+    selectedRegion,
+    recipe.makeup.effects?.[selectedRegion]
+  );
+
+  const { patterns, loading, error, hasCatalog } = useMakeupPatterns(selectedRegion);
+  const [colorCategory, setColorCategory] = useState("all");
+
+  useEffect(() => {
+    setColorCategory("all");
+  }, [selectedRegion]);
+
+  const patternCategories = useMemo(() => uniquePatternCategories(patterns), [patterns]);
+
+  const filteredPatterns = useMemo(() => {
+    if (colorCategory === "all") {
+      return patterns;
+    }
+    return patterns.filter((pattern) => pattern.category === colorCategory);
+  }, [patterns, colorCategory]);
+
+  const selectedPattern = useMemo(
+    () => patterns.find((pattern) => pattern.label === selectedEffect.pattern),
+    [patterns, selectedEffect.pattern]
+  );
+
+  const colorSlotCount = hasCatalog
+    ? selectedPattern?.colorNum ?? 1
+    : selectedRegion === "skin_smooth"
+      ? 0
+      : 1;
+
+  const patternPanelTitle =
+    selectedRegion === "lip_color"
+      ? "Lip Shape"
+      : REGION_CATALOG[selectedRegion]
+        ? "Pattern"
+        : null;
 
   const setRegionValue = (region: MakeupRegion, patch: Partial<MakeupEffectSelection>) => {
-    const current = recipe.makeup.effects?.[region] ?? defaultEffect(region);
+    const current = resolveEffect(region, recipe.makeup.effects?.[region]);
     updateRecipe((state) => ({
       ...state,
       makeup: {
@@ -90,6 +147,39 @@ export default function MakeupPage() {
     markDirty("makeup");
   };
 
+  const handlePatternSelect = (pattern: MakeupPatternEntry) => {
+    const colorNum = pattern.colorNum ?? 1;
+    setRegionValue(selectedRegion, {
+      pattern: pattern.label,
+      colors: normalizeColors(selectedEffect.colors, colorNum),
+      colorIntensities: normalizeIntensities(selectedEffect.colorIntensities, colorNum)
+    });
+  };
+
+  const setColorAtIndex = (index: number, color: string) => {
+    const next = [...selectedEffect.colors];
+    next[index] = color;
+    setRegionValue(selectedRegion, { colors: next });
+  };
+
+  const setIntensityAtIndex = (index: number, intensity: number) => {
+    const next = [...selectedEffect.colorIntensities];
+    next[index] = intensity;
+    setRegionValue(selectedRegion, { colorIntensities: next });
+  };
+
+  const handleApply = async () => {
+    setApplyError(null);
+    setApplying(true);
+    try {
+      await triggerRender(["makeup"]);
+    } catch (err) {
+      setApplyError(err instanceof Error ? err.message : "Failed to apply makeup.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold">Makeup Studio</h1>
@@ -103,7 +193,7 @@ export default function MakeupPage() {
               selected_region: region,
               effects: {
                 ...state.makeup.effects,
-                [region]: state.makeup.effects?.[region] ?? defaultEffect(region)
+                [region]: resolveEffect(region, state.makeup.effects?.[region])
               }
             }
           }));
@@ -113,40 +203,94 @@ export default function MakeupPage() {
 
       <MakeupEffectPanel title={`${REGION_LABEL[selectedRegion]} Options`}>
         <div className="space-y-4">
-          <div>
-            <p className="mb-1 text-xs text-gray-400">Design Pattern</p>
-            <PatternSelector
-              patterns={REGION_PATTERNS[selectedRegion]}
-              selected={selectedEffect.pattern}
-              onSelect={(pattern) => setRegionValue(selectedRegion, { pattern })}
-            />
-          </div>
+          {hasCatalog && (
+            <div className="space-y-3">
+              {patternCategories.length > 1 && (
+                <div>
+                  <p className="mb-2 text-xs text-gray-400">Style group</p>
+                  <ColorCategoryFilter
+                    categories={patternCategories}
+                    selected={colorCategory}
+                    onSelect={setColorCategory}
+                  />
+                </div>
+              )}
 
-          <div>
-            <p className="mb-1 text-xs text-gray-400">Application Design</p>
-            <PatternSelector
-              patterns={REGION_DESIGNS[selectedRegion]}
-              selected={selectedEffect.design}
-              onSelect={(design) => setRegionValue(selectedRegion, { design })}
-            />
-          </div>
+              {patternPanelTitle && (
+                <div>
+                  <p className="mb-2 text-xs text-gray-400">{patternPanelTitle}</p>
+                  {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
+                  <PatternSelector
+                    patterns={filteredPatterns}
+                    selected={selectedEffect.pattern}
+                    onSelect={handlePatternSelect}
+                    loading={loading}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-          <div>
-            <p className="mb-1 text-xs text-gray-400">Color</p>
-            <ColorPicker
-              value={selectedEffect.color}
-              onChange={(color) => setRegionValue(selectedRegion, { color })}
-            />
-          </div>
+          {selectedRegion === "skin_smooth" ? (
+            <>
+              <div>
+                <p className="mb-1 text-xs text-gray-400">Smooth strength</p>
+                <IntensitySlider
+                  value={selectedEffect.skinSmoothStrength ?? 50}
+                  onChange={(skinSmoothStrength) =>
+                    setRegionValue(selectedRegion, { skinSmoothStrength })
+                  }
+                />
+              </div>
+              <div>
+                <p className="mb-1 text-xs text-gray-400">Color intensity</p>
+                <IntensitySlider
+                  value={selectedEffect.skinSmoothColorIntensity ?? 45}
+                  onChange={(skinSmoothColorIntensity) =>
+                    setRegionValue(selectedRegion, { skinSmoothColorIntensity })
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            colorSlotCount > 0 && (
+              <div className="space-y-4">
+                {Array.from({ length: colorSlotCount }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="space-y-2 rounded border border-gray-800 p-3"
+                  >
+                    <p className="text-xs font-medium text-gray-300">
+                      {colorSlotCount > 1 ? `Color ${index + 1}` : "Color"}
+                    </p>
+                    <ColorPicker
+                      value={selectedEffect.colors[index] ?? "#e27f7f"}
+                      onChange={(color) => setColorAtIndex(index, color)}
+                    />
+                    <div>
+                      <p className="mb-1 text-xs text-gray-400">Intensity</p>
+                      <IntensitySlider
+                        value={selectedEffect.colorIntensities[index] ?? 50}
+                        onChange={(intensity) => setIntensityAtIndex(index, intensity)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
       </MakeupEffectPanel>
 
+      {applyError && <p className="text-sm text-red-400">{applyError}</p>}
+
       <button
         type="button"
-        onClick={() => triggerRender(["makeup"])}
-        className="rounded bg-white px-4 py-2 text-black"
+        onClick={handleApply}
+        disabled={applying}
+        className="rounded bg-white px-4 py-2 text-black disabled:opacity-60"
       >
-        Apply Makeup
+        {applying ? "Applying…" : "Apply Makeup"}
       </button>
     </div>
   );

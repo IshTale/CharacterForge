@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { buildMakeupEffects } from "@/lib/makeup/build-effects";
+import { runMakeupVto } from "@/lib/makeup/run-makeup-vto";
+import { validateEffects } from "@/lib/perfectcorp/modules/makeup";
 import type { CanvasKey, CanvasState } from "@/types/canvas";
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
 import type { Recipe } from "@/types/recipe";
@@ -117,21 +120,65 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       return { dirtyModules: next };
     }),
   triggerRender: async (modules: string[]) => {
-    const targets = new Set<CanvasKey>();
-    modules.forEach((moduleName) => {
-      (moduleToCanvas[moduleName] ?? []).forEach((canvas) => targets.add(canvas));
-    });
+    const moduleList = [...modules];
+    const stubModules = moduleList.filter((name) => name !== "makeup");
 
-    targets.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
-    await new Promise((resolve) => setTimeout(resolve, 850));
+    if (moduleList.includes("makeup")) {
+      const headshotFileId = get().fileIds.headshot;
+      get().setCanvasStatus("headshot", "processing");
 
-    targets.forEach((canvas) => {
-      const result = buildTaskResult(canvas, modules.join("+"));
-      if (result.result_url) {
-        get().setCanvasImage(canvas, result.result_url);
+      try {
+        if (!headshotFileId) {
+          throw new Error("Upload a headshot before applying makeup.");
+        }
+
+        const effects = buildMakeupEffects(get().recipe.makeup);
+        if (effects.length === 0) {
+          throw new Error("Configure at least one makeup effect before applying.");
+        }
+        validateEffects(effects);
+
+        get().updateRecipe((recipe) => ({
+          ...recipe,
+          makeup: {
+            ...recipe.makeup,
+            api_effects: effects
+          }
+        }));
+
+        const result = await runMakeupVto(headshotFileId, effects);
+        if (result.result_url) {
+          get().setCanvasImage("headshot", result.result_url);
+        }
+        get().appendTaskResult("headshot", {
+          task_id: result.task_id,
+          task_status: "success",
+          result_url: result.result_url ?? undefined
+        });
+      } catch (error) {
+        get().setCanvasStatus("headshot", "error");
+        throw error;
       }
-      get().appendTaskResult(canvas, result);
-    });
+    }
+
+    if (stubModules.length > 0) {
+      const targets = new Set<CanvasKey>();
+      stubModules.forEach((moduleName) => {
+        (moduleToCanvas[moduleName] ?? []).forEach((canvas) => targets.add(canvas));
+      });
+
+      targets.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
+      await new Promise((resolve) => setTimeout(resolve, 850));
+
+      targets.forEach((canvas) => {
+        const result = buildTaskResult(canvas, stubModules.join("+"));
+        if (result.result_url) {
+          get().setCanvasImage(canvas, result.result_url);
+        }
+        get().appendTaskResult(canvas, result);
+      });
+    }
+
     get().clearDirty(modules);
   },
   publishRecipe: async () => {
