@@ -47,7 +47,7 @@ export async function runJewelryPipeline(
       canvasResults[step.canvas] = result.result_url;
     }
 
-    const nextSource = result.dst_id ?? result.result_url;
+    const nextSource = result.result_url ?? result.dst_id;
     if (nextSource) {
       canvasFileIds[step.canvas] = nextSource;
       if (step.canvas === "handwrist") {

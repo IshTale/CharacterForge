@@ -45,7 +45,7 @@ export async function runWardrobePipeline(
       canvasResults[step.canvas] = result.result_url;
     }
 
-    const nextSource = result.dst_id ?? result.result_url;
+    const nextSource = result.result_url ?? result.dst_id;
     if (nextSource && step.canvas === "fullbody") {
       fullbodySrc = nextSource;
     }
