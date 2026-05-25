@@ -18,6 +18,16 @@ function refFields(payload: JewelryVtoPayload) {
   throw new Error("Jewelry reference image is required.");
 }
 
+function rootRefFields(payload: JewelryVtoPayload) {
+  if (payload.ref_file_id) {
+    return { ref_file_ids: [payload.ref_file_id] };
+  }
+  if (payload.ref_file_url) {
+    return { ref_file_urls: [payload.ref_file_url] };
+  }
+  throw new Error("Jewelry reference image is required.");
+}
+
 function refName(payload: JewelryVtoPayload) {
   const ref = refFields(payload);
   return ref.ref_file_id ?? ref.ref_file_url;
@@ -28,6 +38,8 @@ function sourceObjectPayload(
   parameter: Record<string, unknown>
 ) {
   return {
+    src_file_id: payload.src_file_id,
+    ...rootRefFields(payload),
     source_info: {
       name: payload.src_file_id
     },

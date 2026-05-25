@@ -64,7 +64,6 @@ export default function WardrobePage() {
   };
 
   const clothingSlots = WARDROBE_SLOTS.filter((slot) => CLOTHING_SLOTS.includes(slot.id));
-  const accessorySlots = WARDROBE_SLOTS.filter((slot) => !CLOTHING_SLOTS.includes(slot.id));
 
   return (
     <div className="space-y-6">
@@ -72,7 +71,7 @@ export default function WardrobePage() {
         <h1 className="text-2xl font-semibold text-white">Wardrobe</h1>
         <p className="text-sm text-gray-400">
           Configure clothing with AI generation or your own product photo, then apply the clothing
-          try-on pipeline. Accessory references are saved but not rendered here.
+          try-on pipeline.
         </p>
       </header>
 
@@ -100,21 +99,6 @@ export default function WardrobePage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Clothing</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {clothingSlots.map((slot) => (
-            <WardrobeSlotPanel
-              key={slot.id}
-              slotId={slot.id}
-              value={wardrobe[slot.id]}
-              onChange={(next) => updateSlot(slot.id, next)}
-              onDirty={() => markDirty("wardrobe")}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Accessories</h2>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {accessorySlots.map((slot) => (
             <WardrobeSlotPanel
               key={slot.id}
               slotId={slot.id}

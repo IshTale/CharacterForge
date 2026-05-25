@@ -12,14 +12,11 @@ export default function AccessoriesPage() {
   const updateRecipe = useCharacterForgeStore((state) => state.updateRecipe);
   const markDirty = useCharacterForgeStore((state) => state.markDirty);
   const triggerRender = useCharacterForgeStore((state) => state.triggerRender);
-  const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
 
   const jewelry = recipe.jewelry;
 
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
-  const [publishing, setPublishing] = useState(false);
 
   const canApply = jewelryHasSelection(jewelry);
 
@@ -93,18 +90,6 @@ export default function AccessoriesPage() {
     }
   };
 
-  const handlePublish = async () => {
-    setPublishError(null);
-    setPublishing(true);
-    try {
-      await publishRecipe();
-    } catch (error) {
-      setPublishError(error instanceof Error ? error.message : "Failed to publish recipe.");
-    } finally {
-      setPublishing(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -146,17 +131,6 @@ export default function AccessoriesPage() {
         className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-60"
       >
         {applying ? "Applying accessories..." : "Apply accessories"}
-      </button>
-
-      {publishError && <p className="text-sm text-red-400">{publishError}</p>}
-
-      <button
-        type="button"
-        onClick={handlePublish}
-        disabled={publishing}
-        className="rounded-lg border border-gray-600 px-5 py-2.5 text-sm font-medium text-gray-200 transition hover:border-gray-500 disabled:opacity-60"
-      >
-        {publishing ? "Publishing..." : "Publish recipe"}
       </button>
     </div>
   );
