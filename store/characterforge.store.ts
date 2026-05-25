@@ -320,9 +320,13 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       body: JSON.stringify(prepareRecipeForPublish(get().recipe))
     });
     if (!response.ok) {
-      throw new Error("Failed to publish recipe.");
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? "Failed to publish recipe.");
     }
-    const payload = (await response.json()) as { recipe_id: string };
+    const payload = (await response.json()) as { recipe_id: string; error?: string };
+    if (!payload.recipe_id) {
+      throw new Error(payload.error ?? "Failed to publish recipe.");
+    }
     const recipeId = payload.recipe_id;
     set((state) => ({
       recipe: {
@@ -330,6 +334,9 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         recipe_id: recipeId
       }
     }));
+    if (typeof window !== "undefined") {
+      window.location.assign("/");
+    }
     return recipeId;
   },
   resetStudio: () =>

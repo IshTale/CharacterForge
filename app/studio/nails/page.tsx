@@ -111,8 +111,7 @@ export default function NailsPage() {
     setPublishError(null);
     setPublishing(true);
     try {
-      const recipeId = await publishRecipe();
-      alert(`Published recipe ${recipeId}`);
+      await publishRecipe();
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : "Failed to publish recipe.");
     } finally {

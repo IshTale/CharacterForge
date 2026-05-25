@@ -20,13 +20,36 @@ function parseStatus<T>(payload: { status?: number; data?: T }, fallback: T): T 
   return fallback;
 }
 
+const DEV_STUB_HAIR_TEMPLATES: HairTransferTemplate[] = [
+  {
+    id: "dev-stub-1",
+    title: "Dev sample — long waves",
+    category_name: "Sample",
+    thumb: "https://picsum.photos/seed/hair-stub-1/200/260",
+    keep_users_color: true
+  },
+  {
+    id: "dev-stub-2",
+    title: "Dev sample — short bob",
+    category_name: "Sample",
+    thumb: "https://picsum.photos/seed/hair-stub-2/200/260",
+    keep_users_color: true
+  }
+];
+
 export async function fetchHairTransferTemplates(
   pageSize = 20,
   startingToken?: string
 ): Promise<HairTransferTemplatesResponse> {
   const headers = v2AuthHeaders();
   if (!headers) {
-    return { templates: [], next_token: null };
+    if (startingToken) {
+      return { templates: [], next_token: null };
+    }
+    return {
+      templates: DEV_STUB_HAIR_TEMPLATES.slice(0, pageSize),
+      next_token: null
+    };
   }
 
   const params = new URLSearchParams({ page_size: String(pageSize) });

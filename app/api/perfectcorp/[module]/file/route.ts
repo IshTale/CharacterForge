@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "node:crypto";
 import { MODULE_CONFIG } from "@/constants/api-modules";
+import { getV2ApiKey } from "@/lib/perfectcorp/api-env";
+import { isLocalProxyFileId } from "@/lib/perfectcorp/proxy-file-id";
+import { uploadPerfectCorpFile } from "@/lib/perfectcorp/upload-file";
 import { BlobStorage } from "@/lib/storage/blob";
 import { resolveUploadBaseUrl } from "@/lib/storage/local-uploads";
 import { KvCache } from "@/lib/storage/kv";
@@ -69,30 +72,88 @@ export async function POST(request: Request, context: RouteContext) {
   const cachedFileId = await kvCache.getFileId(cacheKey);
   if (cachedFileId) {
     const cachedUrl = await kvCache.getFileUrl(cachedFileId);
-    return NextResponse.json({
-      module,
-      file_id: cachedFileId,
-      public_url: cachedUrl
-    });
+    const cacheIsValid =
+      !getV2ApiKey() || !isLocalProxyFileId(cachedFileId);
+
+    if (cacheIsValid) {
+      return NextResponse.json({
+        module,
+        file_id: cachedFileId,
+        public_url: cachedUrl
+      });
+    }
+
+    if (cachedUrl) {
+      try {
+        const refetch = await fetch(cachedUrl);
+        if (refetch.ok) {
+          const refetchBytes = Buffer.from(await refetch.arrayBuffer());
+          const contentTypeHeader =
+            refetch.headers.get("content-type") ?? contentType;
+          const pcFileId = await uploadPerfectCorpFile(
+            module,
+            refetchBytes,
+            file.name,
+            contentTypeHeader.startsWith("image/") ? contentTypeHeader : contentType
+          );
+          await kvCache.setFileId(cacheKey, pcFileId);
+          await kvCache.setFileUrl(pcFileId, cachedUrl);
+          return NextResponse.json({
+            module,
+            file_id: pcFileId,
+            public_url: cachedUrl
+          });
+        }
+      } catch (reuploadError) {
+        console.error("[perfectcorp/file] cache re-upload", reuploadError);
+      }
+    }
   }
 
-  const fileId = `file_${randomUUID()}`;
+  const previewFileId = `file_${randomUUID()}`;
   const baseUrl = resolveUploadBaseUrl(request);
 
   try {
     const blobStorage = new BlobStorage();
     const publicUrl = await blobStorage.upload(
-      `${module}/${fileId}-${file.name}`,
+      `${module}/${previewFileId}-${file.name}`,
       bytes,
       contentType,
-      { fileId, baseUrl }
+      { fileId: previewFileId, baseUrl }
     );
-    await kvCache.setFileId(cacheKey, fileId);
-    await kvCache.setFileUrl(fileId, publicUrl);
+
+    if (!getV2ApiKey()) {
+      await kvCache.setFileId(cacheKey, previewFileId);
+      await kvCache.setFileUrl(previewFileId, publicUrl);
+      return NextResponse.json({
+        module,
+        file_id: previewFileId,
+        public_url: publicUrl
+      });
+    }
+
+    let taskFileId: string;
+    try {
+      taskFileId = await uploadPerfectCorpFile(module, bytes, file.name, contentType);
+    } catch (perfectCorpError) {
+      console.error("[perfectcorp/file]", perfectCorpError);
+      return NextResponse.json(
+        {
+          error:
+            perfectCorpError instanceof Error
+              ? perfectCorpError.message
+              : "Perfect Corp file upload failed."
+        },
+        { status: 502 }
+      );
+    }
+
+    await kvCache.setFileId(cacheKey, taskFileId);
+    await kvCache.setFileUrl(taskFileId, publicUrl);
 
     return NextResponse.json({
       module,
-      file_id: fileId,
+      file_id: taskFileId,
       public_url: publicUrl
     });
   } catch (error) {

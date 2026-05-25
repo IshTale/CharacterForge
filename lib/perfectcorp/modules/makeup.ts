@@ -79,14 +79,22 @@ export function buildMakeupTaskPayload(
   };
 }
 
-export async function applyMakeup(payload: MakeupVtoTaskPayload) {
+export interface MakeupApplyResult {
+  task_id: string | null;
+  result_url: string | null;
+  dst_id?: string | null;
+  payload?: MakeupVtoTaskPayload;
+}
+
+export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<MakeupApplyResult> {
   validateEffects(payload.effects);
 
   const apiKey = process.env.PERFECTCORP_V2_API_KEY;
   if (!apiKey) {
     return {
-      task_id: null as string | null,
-      result_url: null as string | null,
+      task_id: null,
+      result_url: null,
+      dst_id: `dst_makeup-vto_${Date.now()}`,
       payload
     };
   }
