@@ -54,7 +54,7 @@ export async function runWardrobePipeline(
 export async function generateWardrobeItem(prompt: string, slotId: string) {
   const result = await runSseTask("image-gen", { prompt, slot_id: slotId });
   return {
-    ref_file_id: result.dst_id ?? `gen_${slotId}_${Date.now()}`,
+    ref_file_id: undefined,
     preview_url: result.result_url ?? undefined,
     ref_image_url: result.result_url ?? undefined
   };

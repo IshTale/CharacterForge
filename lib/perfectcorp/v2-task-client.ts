@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { PERFECTCORP_V2_BASE } from "@/lib/perfectcorp/api-env";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
+import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 
 export interface V2TaskResult {
   task_id: string | null;
@@ -55,15 +56,16 @@ export async function postAndPollV2Task(
     const pollData = (await poll.json()) as {
       data?: Record<string, unknown> & {
         task_status?: string;
-        results?: Array<{ url?: string; data?: Array<{ dst_id?: string }> }>;
+        results?: unknown;
       };
     };
     const status = pollData.data?.task_status;
     if (status === "success") {
+      const parsed = parseTaskResult(pollData.data?.results);
       return {
         task_id: taskId,
-        result_url: pollData.data?.results?.[0]?.url ?? null,
-        dst_id: pollData.data?.results?.[0]?.data?.[0]?.dst_id ?? null
+        result_url: parsed.result_url,
+        dst_id: parsed.dst_id
       };
     }
     if (status === "error") {

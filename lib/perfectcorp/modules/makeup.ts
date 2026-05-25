@@ -1,5 +1,6 @@
 import { buildMakeupEffects } from "@/lib/makeup/build-effects";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
+import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
 import type { MakeupConfig } from "@/types/recipe";
 
@@ -137,12 +138,12 @@ export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<Makeup
     const pollData = (await poll.json()) as {
       data?: Record<string, unknown> & {
         task_status?: string;
-        results?: Array<{ url?: string }>;
+        results?: unknown;
       };
     };
     const status = pollData.data?.task_status;
     if (status === "success") {
-      const resultUrl = pollData.data?.results?.[0]?.url ?? null;
+      const resultUrl = parseTaskResult(pollData.data?.results).result_url;
       return { task_id: taskId, result_url: resultUrl, payload };
     }
     if (status === "error") {
