@@ -43,15 +43,6 @@ export const WARDROBE_SLOTS: WardrobeSlotDefinition[] = [
     placeholder: "Wide-brim witch hat with silver buckle, product photo"
   },
   {
-    id: "shoes",
-    title: "Shoes",
-    subtitle: "Footwear applied to your feet photo",
-    fileModule: "shoes",
-    tryOnModule: "shoes",
-    sourceCanvas: "feet",
-    placeholder: "Platform combat boots with buckles, studio photo"
-  },
-  {
     id: "bag",
     title: "Bag",
     subtitle: "Handbags and shoulder bags on full body",
@@ -67,4 +58,4 @@ export const WARDROBE_SLOT_BY_ID = Object.fromEntries(
 ) as Record<WardrobeSlotId, WardrobeSlotDefinition>;
 
 export const CLOTHING_SLOTS: WardrobeSlotId[] = ["top", "bottom"];
-export const ACCESSORY_SLOTS: WardrobeSlotId[] = ["hat", "shoes", "bag"];
+export const ACCESSORY_SLOTS: WardrobeSlotId[] = ["hat", "bag"];

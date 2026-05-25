@@ -9,6 +9,7 @@ import type { WardrobeConfig } from "@/types/wardrobe";
 
 export interface WardrobePipelineResult {
   canvasResults: Partial<Record<CanvasKey, string | null>>;
+  canvasFileIds: Partial<Record<CanvasKey, string | null>>;
   task_ids: string[];
 }
 
@@ -23,9 +24,11 @@ export async function runWardrobePipeline(
 
   const steps = buildWardrobePipelineSteps(wardrobe, fileIds);
   const canvasResults: Partial<Record<CanvasKey, string | null>> = {};
+  const canvasFileIds: Partial<Record<CanvasKey, string | null>> = {};
   const taskIds: string[] = [];
 
   let fullbodySrc = fileIds.fullbody;
+  let headshotSrc = fileIds.headshot;
 
   for (const step of steps) {
     const payload = { ...step.payload };
@@ -34,6 +37,9 @@ export async function runWardrobePipeline(
     }
     if (step.module === "bag" && fullbodySrc) {
       payload.src_file_id = fullbodySrc;
+    }
+    if (step.module === "hat" && headshotSrc) {
+      payload.src_file_id = headshotSrc;
     }
 
     const result = await runSseTask(step.module, payload);
@@ -46,9 +52,15 @@ export async function runWardrobePipeline(
     if (result.dst_id && (step.module === "cloth" || step.module === "bag")) {
       fullbodySrc = result.dst_id;
     }
+    if (result.dst_id && step.module === "hat") {
+      headshotSrc = result.dst_id;
+    }
+    if (result.dst_id) {
+      canvasFileIds[step.canvas] = result.dst_id;
+    }
   }
 
-  return { canvasResults, task_ids: taskIds };
+  return { canvasResults, canvasFileIds, task_ids: taskIds };
 }
 
 export async function generateWardrobeItem(prompt: string, slotId: string) {

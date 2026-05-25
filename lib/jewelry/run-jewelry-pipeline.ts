@@ -10,6 +10,7 @@ import type { JewelryConfig } from "@/types/recipe";
 
 export interface JewelryPipelineResult {
   canvasResults: Partial<Record<CanvasKey, string | null>>;
+  canvasFileIds: Partial<Record<CanvasKey, string | null>>;
   task_ids: string[];
 }
 
@@ -24,6 +25,7 @@ export async function runJewelryPipeline(
 
   const steps = buildJewelryPipelineSteps(jewelry, fileIds);
   const canvasResults: Partial<Record<CanvasKey, string | null>> = {};
+  const canvasFileIds: Partial<Record<CanvasKey, string | null>> = {};
   const taskIds: string[] = [];
 
   let handSrc = fileIds.handwrist;
@@ -46,6 +48,7 @@ export async function runJewelryPipeline(
     }
 
     if (result.dst_id) {
+      canvasFileIds[step.canvas] = result.dst_id;
       if (step.canvas === "handwrist") {
         handSrc = result.dst_id;
       }
@@ -55,5 +58,5 @@ export async function runJewelryPipeline(
     }
   }
 
-  return { canvasResults, task_ids: taskIds };
+  return { canvasResults, canvasFileIds, task_ids: taskIds };
 }

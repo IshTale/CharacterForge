@@ -5,6 +5,7 @@ import type { MakeupApiEffect } from "@/types/makeup-api";
 export interface MakeupVtoRunResult {
   task_id: string;
   result_url: string | null;
+  dst_id: string | null;
   effects: MakeupApiEffect[];
 }
 
@@ -63,6 +64,7 @@ export async function runMakeupVto(
   let buffer = "";
   let taskId = "";
   let resultUrl: string | null = null;
+  let dstId: string | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -84,6 +86,9 @@ export async function runMakeupVto(
         if (typeof payload.result_url === "string") {
           resultUrl = payload.result_url;
         }
+        if (typeof payload.dst_id === "string") {
+          dstId = payload.dst_id;
+        }
       }
       if (event === "error") {
         throw new Error(
@@ -97,5 +102,5 @@ export async function runMakeupVto(
     throw new Error("Makeup task did not return a task id.");
   }
 
-  return { task_id: taskId, result_url: resultUrl, effects };
+  return { task_id: taskId, result_url: resultUrl, dst_id: dstId, effects };
 }

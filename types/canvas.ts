@@ -1,9 +1,21 @@
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
 
 export type CanvasKey = "headshot" | "fullbody" | "handwrist" | "feet";
+export type StudioSectionKey = "upload" | "wardrobe" | "makeup" | "hair" | "nails";
+
+export interface CanvasSnapshot {
+  image_url: string | null;
+  file_id: string | null;
+}
+
+export interface StudioSectionSnapshot {
+  canvases: Record<CanvasKey, CanvasSnapshot>;
+  created_at: string;
+}
 
 export interface CanvasState {
   current_image_url: string | null;
+  current_file_id: string | null;
   task_history: TaskResult[];
   status: TaskStatus;
 }

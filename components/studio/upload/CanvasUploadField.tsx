@@ -25,6 +25,8 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
   const setBasePhoto = useCharacterForgeStore((state) => state.setBasePhoto);
   const setFileId = useCharacterForgeStore((state) => state.setFileId);
   const setCanvasImage = useCharacterForgeStore((state) => state.setCanvasImage);
+  const saveSectionSnapshot = useCharacterForgeStore((state) => state.saveSectionSnapshot);
+  const clearSnapshotsAfter = useCharacterForgeStore((state) => state.clearSnapshotsAfter);
   const fileId = useCharacterForgeStore((state) => state.fileIds[canvas]);
   const basePhoto = useCharacterForgeStore((state) => state.basePhotos[canvas]);
 
@@ -46,6 +48,9 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
     setError(null);
     setBasePhoto(canvas, null);
     setFileId(canvas, null);
+    setCanvasImage(canvas, null, null);
+    saveSectionSnapshot("upload");
+    clearSnapshotsAfter("upload");
   };
 
   const handleFile = async (file: File | null) => {
@@ -63,11 +68,16 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
       const result = await uploadModuleFile(file, moduleByCanvas[canvas]);
       setFileId(canvas, result.file_id);
       if (result.public_url) {
-        setCanvasImage(canvas, result.public_url);
+        setCanvasImage(canvas, result.public_url, result.file_id);
       }
+      saveSectionSnapshot("upload");
+      clearSnapshotsAfter("upload");
     } catch (uploadError) {
       setBasePhoto(canvas, null);
       setFileId(canvas, null);
+      setCanvasImage(canvas, null, null);
+      saveSectionSnapshot("upload");
+      clearSnapshotsAfter("upload");
       setError(
         uploadError instanceof Error ? uploadError.message : "Upload failed. Check image requirements."
       );

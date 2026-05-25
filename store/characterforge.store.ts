@@ -3,7 +3,13 @@ import { buildMakeupEffects } from "@/lib/makeup/build-effects";
 import { runMakeupVto } from "@/lib/makeup/run-makeup-vto";
 import { runWardrobePipeline } from "@/lib/wardrobe/run-wardrobe-pipeline";
 import { validateEffects } from "@/lib/perfectcorp/modules/makeup";
-import type { CanvasKey, CanvasState } from "@/types/canvas";
+import type {
+  CanvasKey,
+  CanvasSnapshot,
+  CanvasState,
+  StudioSectionKey,
+  StudioSectionSnapshot
+} from "@/types/canvas";
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
 import { hairHasSelection, normalizeHairConfig } from "@/lib/hair/normalize-hair-config";
 import { runHairTransfer } from "@/lib/hair/run-hair-transfer";
@@ -20,9 +26,86 @@ import type { RecipeSlice } from "@/store/recipe.slice";
 
 const createEmptyCanvas = (): CanvasState => ({
   current_image_url: null,
+  current_file_id: null,
   task_history: [],
   status: "idle"
 });
+
+const canvasKeys: CanvasKey[] = ["headshot", "fullbody", "handwrist", "feet"];
+const studioSections: StudioSectionKey[] = ["upload", "wardrobe", "makeup", "hair", "nails"];
+const moduleToSection: Record<string, StudioSectionKey> = {
+  wardrobe: "wardrobe",
+  makeup: "makeup",
+  hair: "hair",
+  nails: "nails"
+};
+
+function createSectionSnapshot(
+  canvases: Record<CanvasKey, CanvasState>
+): StudioSectionSnapshot {
+  const snapshot = canvasKeys.reduce(
+    (next, canvas) => {
+      next[canvas] = {
+        image_url: canvases[canvas].current_image_url,
+        file_id: canvases[canvas].current_file_id
+      };
+      return next;
+    },
+    {} as Record<CanvasKey, CanvasSnapshot>
+  );
+
+  return {
+    canvases: snapshot,
+    created_at: new Date().toISOString()
+  };
+}
+
+function findSnapshotAtOrBefore(
+  snapshots: Partial<Record<StudioSectionKey, StudioSectionSnapshot>>,
+  section: StudioSectionKey
+) {
+  const index = studioSections.indexOf(section);
+  for (let i = index; i >= 0; i -= 1) {
+    const snapshot = snapshots[studioSections[i]];
+    if (snapshot) {
+      return snapshot;
+    }
+  }
+  return null;
+}
+
+function findSnapshotBefore(
+  snapshots: Partial<Record<StudioSectionKey, StudioSectionSnapshot>>,
+  section: StudioSectionKey
+) {
+  const index = studioSections.indexOf(section);
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const snapshot = snapshots[studioSections[i]];
+    if (snapshot) {
+      return snapshot;
+    }
+  }
+  return null;
+}
+
+function applySnapshotToCanvases(
+  current: Record<CanvasKey, CanvasState>,
+  snapshot: StudioSectionSnapshot
+) {
+  return canvasKeys.reduce(
+    (next, canvas) => {
+      const saved = snapshot.canvases[canvas];
+      next[canvas] = {
+        ...current[canvas],
+        current_image_url: saved.image_url,
+        current_file_id: saved.file_id,
+        status: saved.image_url || saved.file_id ? "success" : "idle"
+      };
+      return next;
+    },
+    {} as Record<CanvasKey, CanvasState>
+  );
+}
 
 const defaultRecipe: Recipe = {
   schema_version: "1.0",
@@ -41,11 +124,10 @@ export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
 }
 
 const moduleToCanvas: Record<string, CanvasKey[]> = {
-  wardrobe: ["fullbody", "headshot", "feet"],
+  wardrobe: ["fullbody", "headshot"],
   makeup: ["headshot"],
   hair: ["headshot"],
-  nails: ["handwrist", "headshot"],
-  shoes: ["feet"]
+  nails: ["handwrist", "headshot"]
 };
 
 function buildTaskResult(canvas: CanvasKey, moduleName: string): TaskResult {
@@ -63,6 +145,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     handwrist: createEmptyCanvas(),
     feet: createEmptyCanvas()
   },
+  sectionSnapshots: {},
   basePhotos: {
     headshot: null,
     fullbody: null,
@@ -82,13 +165,22 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         [canvas]: { ...state.canvases[canvas], status }
       }
     })),
-  setCanvasImage: (canvas: CanvasKey, url: string) =>
-    set((state) => ({
-      canvases: {
-        ...state.canvases,
-        [canvas]: { ...state.canvases[canvas], current_image_url: url, status: "success" }
-      }
-    })),
+  setCanvasImage: (canvas: CanvasKey, url: string | null, fileId?: string | null) =>
+    set((state) => {
+      const nextFileId =
+        fileId === undefined ? state.canvases[canvas].current_file_id : fileId;
+      return {
+        canvases: {
+          ...state.canvases,
+          [canvas]: {
+            ...state.canvases[canvas],
+            current_image_url: url,
+            current_file_id: nextFileId,
+            status: url || nextFileId ? "success" : "idle"
+          }
+        }
+      };
+    }),
   appendTaskResult: (canvas: CanvasKey, result: TaskResult) =>
     set((state) => ({
       canvases: {
@@ -111,8 +203,43 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       fileIds: {
         ...state.fileIds,
         [canvas]: fileId
+      },
+      canvases: {
+        ...state.canvases,
+        [canvas]: {
+          ...state.canvases[canvas],
+          current_file_id: fileId,
+          current_image_url: fileId ? state.canvases[canvas].current_image_url : null,
+          status: fileId ? state.canvases[canvas].status : "idle"
+        }
       }
     })),
+  saveSectionSnapshot: (section: StudioSectionKey) =>
+    set((state) => ({
+      sectionSnapshots: {
+        ...state.sectionSnapshots,
+        [section]: createSectionSnapshot(state.canvases)
+      }
+    })),
+  restoreSectionSnapshot: (section: StudioSectionKey) =>
+    set((state) => {
+      const snapshot = findSnapshotAtOrBefore(state.sectionSnapshots, section);
+      if (!snapshot) {
+        return {};
+      }
+      return {
+        canvases: applySnapshotToCanvases(state.canvases, snapshot)
+      };
+    }),
+  clearSnapshotsAfter: (section: StudioSectionKey) =>
+    set((state) => {
+      const sectionIndex = studioSections.indexOf(section);
+      const sectionSnapshots = { ...state.sectionSnapshots };
+      studioSections.slice(sectionIndex + 1).forEach((snapshotSection) => {
+        delete sectionSnapshots[snapshotSection];
+      });
+      return { sectionSnapshots };
+    }),
   recipe: defaultRecipe,
   dirtyModules: new Set(),
   updateRecipe: (updater) =>
@@ -134,9 +261,36 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     const stubModules = moduleList.filter(
       (name) => name !== "makeup" && name !== "wardrobe" && name !== "hair" && name !== "nails"
     );
+    const restoreInputSnapshot = (moduleName: string) => {
+      const section = moduleToSection[moduleName];
+      if (!section) {
+        return;
+      }
+      const snapshot = findSnapshotBefore(get().sectionSnapshots, section);
+      if (!snapshot) {
+        return;
+      }
+      set((state) => ({
+        canvases: applySnapshotToCanvases(state.canvases, snapshot)
+      }));
+    };
+    const sourceFileId = (moduleName: string, canvas: CanvasKey) => {
+      const section = moduleToSection[moduleName];
+      const snapshot = section ? findSnapshotBefore(get().sectionSnapshots, section) : null;
+      return snapshot?.canvases[canvas].file_id ?? get().fileIds[canvas];
+    };
+    const saveModuleSnapshot = (moduleName: string) => {
+      const section = moduleToSection[moduleName];
+      if (!section) {
+        return;
+      }
+      get().saveSectionSnapshot(section);
+      get().clearSnapshotsAfter(section);
+    };
 
     if (moduleList.includes("makeup")) {
-      const headshotFileId = get().fileIds.headshot;
+      restoreInputSnapshot("makeup");
+      const headshotFileId = sourceFileId("makeup", "headshot");
       get().setCanvasStatus("headshot", "processing");
 
       try {
@@ -160,13 +314,14 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
 
         const result = await runMakeupVto(headshotFileId, effects);
         if (result.result_url) {
-          get().setCanvasImage("headshot", result.result_url);
+          get().setCanvasImage("headshot", result.result_url, result.dst_id);
         }
         get().appendTaskResult("headshot", {
           task_id: result.task_id,
           task_status: "success",
           result_url: result.result_url ?? undefined
         });
+        saveModuleSnapshot("makeup");
       } catch (error) {
         get().setCanvasStatus("headshot", "error");
         throw error;
@@ -174,28 +329,33 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }
 
     if (moduleList.includes("wardrobe")) {
-      const canvases: CanvasKey[] = ["fullbody", "headshot", "feet"];
+      restoreInputSnapshot("wardrobe");
+      const canvases: CanvasKey[] = ["fullbody", "headshot"];
       canvases.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
 
       try {
         const wardrobe = get().recipe.wardrobe;
-        const fileIds = get().fileIds;
+        const fileIds = {
+          headshot: sourceFileId("wardrobe", "headshot"),
+          fullbody: sourceFileId("wardrobe", "fullbody")
+        };
         const result = await runWardrobePipeline(wardrobe, {
           headshot: fileIds.headshot,
-          fullbody: fileIds.fullbody,
-          feet: fileIds.feet
+          fullbody: fileIds.fullbody
         });
 
         for (const [canvas, url] of Object.entries(result.canvasResults)) {
+          const canvasKey = canvas as CanvasKey;
           if (url) {
-            get().setCanvasImage(canvas as CanvasKey, url);
+            get().setCanvasImage(canvasKey, url, result.canvasFileIds[canvasKey] ?? null);
           }
-          get().appendTaskResult(canvas as CanvasKey, {
+          get().appendTaskResult(canvasKey, {
             task_id: result.task_ids.join("-") || `wardrobe-${Date.now()}`,
             task_status: "success",
             result_url: url ?? undefined
           });
         }
+        saveModuleSnapshot("wardrobe");
       } catch (error) {
         canvases.forEach((canvas) => get().setCanvasStatus(canvas, "error"));
         throw error;
@@ -203,7 +363,8 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }
 
     if (moduleList.includes("hair")) {
-      const headshotFileId = get().fileIds.headshot;
+      restoreInputSnapshot("hair");
+      const headshotFileId = sourceFileId("hair", "headshot");
       if (!headshotFileId) {
         throw new Error("Upload a headshot before applying hair.");
       }
@@ -216,13 +377,14 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       try {
         const result = await runHairTransfer(headshotFileId, hair.transfer);
         if (result.result_url) {
-          get().setCanvasImage("headshot", result.result_url);
+          get().setCanvasImage("headshot", result.result_url, result.dst_id);
         }
         get().appendTaskResult("headshot", {
           task_id: result.task_id,
           task_status: "success",
           result_url: result.result_url ?? undefined
         });
+        saveModuleSnapshot("hair");
       } catch (error) {
         get().setCanvasStatus("headshot", "error");
         throw error;
@@ -230,8 +392,9 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     }
 
     if (moduleList.includes("nails")) {
-      const handFileId = get().fileIds.handwrist;
-      const headshotFileId = get().fileIds.headshot;
+      restoreInputSnapshot("nails");
+      const handFileId = sourceFileId("nails", "handwrist");
+      const headshotFileId = sourceFileId("nails", "headshot");
       if (!handFileId) {
         throw new Error("Upload a hand & wrist photo before applying nails.");
       }
@@ -253,7 +416,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       try {
         const nailResult = await runNailVto(handFileId, nails);
         if (nailResult.result_url) {
-          get().setCanvasImage("handwrist", nailResult.result_url);
+          get().setCanvasImage("handwrist", nailResult.result_url, nailResult.dst_id);
         }
         get().appendTaskResult("handwrist", {
           task_id: nailResult.task_id,
@@ -267,8 +430,13 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
             headshot: headshotFileId
           });
           for (const [canvas, url] of Object.entries(jewelryResult.canvasResults)) {
+            const canvasKey = canvas as CanvasKey;
             if (url) {
-              get().setCanvasImage(canvas as CanvasKey, url);
+              get().setCanvasImage(
+                canvasKey,
+                url,
+                jewelryResult.canvasFileIds[canvasKey] ?? null
+              );
             }
           }
           get().appendTaskResult("handwrist", {
@@ -284,6 +452,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
             });
           }
         }
+        saveModuleSnapshot("nails");
       } catch (error) {
         get().setCanvasStatus("handwrist", "error");
         if (hasJewelry && jewelry.necklace) {
@@ -343,6 +512,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     set({
       recipe: { ...defaultRecipe, created_at: new Date().toISOString() },
       dirtyModules: new Set(),
+      sectionSnapshots: {},
       canvases: {
         headshot: createEmptyCanvas(),
         fullbody: createEmptyCanvas(),

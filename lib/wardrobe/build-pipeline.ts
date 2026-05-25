@@ -14,7 +14,6 @@ export interface WardrobePipelineStep {
 export interface WardrobeFileIds {
   headshot: string | null;
   fullbody: string | null;
-  feet: string | null;
 }
 
 function refForSlot(slot: WardrobeSlotState): { ref_file_id?: string; ref_file_url?: string } {
@@ -84,20 +83,6 @@ export function buildWardrobePipelineSteps(
     });
   }
 
-  if (isWardrobeSlotReady(wardrobe.shoes) && fileIds.feet) {
-    steps.push({
-      slotId: "shoes",
-      module: "shoes",
-      canvas: "feet",
-      label: "Shoes",
-      payload: {
-        src_file_id: fileIds.feet,
-        ...refForSlot(wardrobe.shoes),
-        gender
-      }
-    });
-  }
-
   return steps;
 }
 
@@ -109,7 +94,6 @@ export function validateWardrobePipeline(
     isWardrobeSlotReady(wardrobe.top) ||
     isWardrobeSlotReady(wardrobe.bottom) ||
     isWardrobeSlotReady(wardrobe.hat) ||
-    isWardrobeSlotReady(wardrobe.shoes) ||
     isWardrobeSlotReady(wardrobe.bag);
 
   if (!hasAnySlot) {
@@ -127,10 +111,6 @@ export function validateWardrobePipeline(
 
   if (isWardrobeSlotReady(wardrobe.hat) && !fileIds.headshot) {
     return "Upload a headshot before applying a hat.";
-  }
-
-  if (isWardrobeSlotReady(wardrobe.shoes) && !fileIds.feet) {
-    return "Upload a feet photo before applying shoes.";
   }
 
   return null;

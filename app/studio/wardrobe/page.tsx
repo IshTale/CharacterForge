@@ -16,7 +16,6 @@ function ensureWardrobeConfig(wardrobe: WardrobeConfig | undefined): WardrobeCon
     top: wardrobe?.top ?? createEmptyWardrobeSlot(),
     bottom: wardrobe?.bottom ?? createEmptyWardrobeSlot(),
     hat: wardrobe?.hat ?? createEmptyWardrobeSlot(),
-    shoes: wardrobe?.shoes ?? createEmptyWardrobeSlot(),
     bag: wardrobe?.bag ?? createEmptyWardrobeSlot()
   };
 }

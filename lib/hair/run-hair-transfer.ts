@@ -6,6 +6,7 @@ import type { HairTransferSelection } from "@/types/hair";
 export interface HairTransferRunResult {
   task_id: string;
   result_url: string | null;
+  dst_id: string | null;
 }
 
 function parseSseEvents(buffer: string): Array<{ event: string; data: unknown }> {
@@ -60,6 +61,7 @@ export async function runHairTransfer(
   let buffer = "";
   let taskId = "";
   let resultUrl: string | null = null;
+  let dstId: string | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -79,6 +81,9 @@ export async function runHairTransfer(
         if (typeof eventPayload.result_url === "string") {
           resultUrl = eventPayload.result_url;
         }
+        if (typeof eventPayload.dst_id === "string") {
+          dstId = eventPayload.dst_id;
+        }
       }
       if (event === "error") {
         throw new Error(
@@ -94,5 +99,5 @@ export async function runHairTransfer(
     throw new Error("Hair transfer task did not return a task id.");
   }
 
-  return { task_id: taskId, result_url: resultUrl };
+  return { task_id: taskId, result_url: resultUrl, dst_id: dstId };
 }

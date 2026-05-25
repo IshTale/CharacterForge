@@ -3,7 +3,7 @@
 import PhotoUploader from "@/components/shared/PhotoUploader";
 
 interface AccessoryUploaderProps {
-  accessory: "hat" | "bag" | "shoes";
+  accessory: "hat" | "bag";
 }
 
 export default function AccessoryUploader({ accessory }: AccessoryUploaderProps) {

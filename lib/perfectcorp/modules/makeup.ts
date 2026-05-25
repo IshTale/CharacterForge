@@ -143,8 +143,13 @@ export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<Makeup
     };
     const status = pollData.data?.task_status;
     if (status === "success") {
-      const resultUrl = parseTaskResult(pollData.data?.results).result_url;
-      return { task_id: taskId, result_url: resultUrl, payload };
+      const parsed = parseTaskResult(pollData.data?.results);
+      return {
+        task_id: taskId,
+        result_url: parsed.result_url,
+        dst_id: parsed.dst_id,
+        payload
+      };
     }
     if (status === "error") {
       throw new Error(extractPollErrorMessage("/task/makeup-vto", pollData));

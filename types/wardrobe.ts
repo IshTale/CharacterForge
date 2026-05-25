@@ -1,4 +1,4 @@
-export type WardrobeSlotId = "top" | "bottom" | "hat" | "shoes" | "bag";
+export type WardrobeSlotId = "top" | "bottom" | "hat" | "bag";
 
 export type WardrobeItemSource = "generate" | "upload";
 
@@ -15,7 +15,6 @@ export interface WardrobeConfig {
   top: WardrobeSlotState;
   bottom: WardrobeSlotState;
   hat: WardrobeSlotState;
-  shoes: WardrobeSlotState;
   bag: WardrobeSlotState;
 }
 
@@ -29,7 +28,6 @@ export function createDefaultWardrobeConfig(): WardrobeConfig {
     top: createEmptyWardrobeSlot(),
     bottom: createEmptyWardrobeSlot(),
     hat: createEmptyWardrobeSlot(),
-    shoes: createEmptyWardrobeSlot(),
     bag: createEmptyWardrobeSlot()
   };
 }

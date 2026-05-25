@@ -35,13 +35,12 @@ Stage 2: Project Initialization (The Canvas Setup)
 
 When a user clicks "New Design," they are prompted to set up their "Digital Canvas."
 
-●  Upload Requirements: The UI presents four distinct dropzones for image uploads to
+●  Upload Requirements: The UI presents three distinct dropzones for image uploads to
 
 ensure comprehensive virtual try-on capabilities:
 1.  Full Body Frame: For clothing and overall silhouette.
 2.  Headshot: Well-lit, face-forward for makeup, hair, hats, earrings, and necklaces.
 3.  Hand with Wrist: For rings, bracelets, watches, and nail designs.
-4.  Feet: For shoes and anklets.
 
 ●  Validation: Basic frontend checks for image resolution and aspect ratio before proceeding.
 
@@ -51,7 +50,7 @@ Once the base photos are uploaded, the user enters a multi-step creation wizard.
 
 Module A: Wardrobe & Accessories (AI Generation & Try-On)
 
-●  Concept: Users define distinct items (Clothes, Jewelry, Shoes) via text prompts or
+●  Concept: Users define distinct items (Clothes, Jewelry) via text prompts or
 
 selections.
 
@@ -119,15 +118,14 @@ decals, specific polish art) which the frontend maps onto the fingernail coordin
 
 4. Output Generation & Data Architecture
 
-The Four Composite Renderings
+The Three Composite Renderings
 
 The UI synthesizes the user's choices and routes them to the correct base image. The final
-preview screen displays a 4-pane grid showing the completed look:
+preview screen displays a 3-pane grid showing the completed look:
 
 1.  Full Body Output: Base Image + Clothes + Bag/Fabric (if applicable).
 2.  Headshot Output: Base Image + Makeup + Hair + Hat + Scarf + Earrings + Necklace.
 3.  Hand & Wrist Output: Base Image + Watch + Bracelet + Ring + Nails.
-4.  Feet Output: Base Image + Shoes.
 
 Data Storage Strategy: "The Recipe"
 
@@ -150,11 +148,11 @@ marketplace look.
 
 ●  Dashboard Display: The dashboard generates a dynamic thumbnail using the isolated
 
-clothing items and makeup to create the 4 images from a fake person based on the original
+clothing items and makeup to create the 3 images from a fake person based on the original
 user image we received with similar body structure and skin type.
 
 ●  Community Try-On: When User B clicks User A's design, the frontend fetches User A's
-"Recipe" payload and runs it through the Virtual Try-On APIs against User B's four base
+"Recipe" payload and runs it through the Virtual Try-On APIs against User B's base
 photos.
 
 5. Technical Stack Considerations (Frontend)

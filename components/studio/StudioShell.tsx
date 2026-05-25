@@ -2,29 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { Fragment, type ReactNode } from "react";
-import FeetCanvas from "@/components/canvas/FeetCanvas";
+import React, { Fragment, useEffect, type ReactNode } from "react";
 import FullBodyCanvas from "@/components/canvas/FullBodyCanvas";
 import HandWristCanvas from "@/components/canvas/HandWristCanvas";
 import HeadshotCanvas from "@/components/canvas/HeadshotCanvas";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
+import type { StudioSectionKey } from "@/types/canvas";
 
 interface StudioShellProps {
   children: ReactNode;
 }
 
-const modules = [
-  { href: "/studio/upload", label: "Upload" },
-  { href: "/studio/wardrobe", label: "Wardrobe" },
-  { href: "/studio/makeup", label: "Makeup" },
-  { href: "/studio/hair", label: "Hair" },
-  { href: "/studio/nails", label: "Nails" }
+const modules: Array<{ href: string; label: string; key: StudioSectionKey }> = [
+  { href: "/studio/upload", label: "Upload", key: "upload" },
+  { href: "/studio/wardrobe", label: "Wardrobe", key: "wardrobe" },
+  { href: "/studio/makeup", label: "Makeup", key: "makeup" },
+  { href: "/studio/hair", label: "Hair", key: "hair" },
+  { href: "/studio/nails", label: "Nails", key: "nails" }
 ];
 
 export default function StudioShell({ children }: StudioShellProps) {
   const pathname = usePathname();
   const canvases = useCharacterForgeStore((state) => state.canvases);
   const fileIds = useCharacterForgeStore((state) => state.fileIds);
+  const restoreSectionSnapshot = useCharacterForgeStore((state) => state.restoreSectionSnapshot);
 
   // Find where we currently are in the flow
   const currentIndex = modules.findIndex((m) => pathname?.startsWith(m.href));
@@ -33,9 +34,13 @@ export default function StudioShell({ children }: StudioShellProps) {
   // Determine previous and next routes
   const prevModule = activeIndex > 0 ? modules[activeIndex - 1] : null;
   const nextModule = activeIndex < modules.length - 1 ? modules[activeIndex + 1] : null;
-  const uploadsComplete = Object.values(fileIds).every(Boolean);
+  const uploadsComplete = Boolean(fileIds.headshot && fileIds.fullbody && fileIds.handwrist);
   const onUploadStep = activeIndex === 0;
   const canAdvance = !onUploadStep || uploadsComplete;
+
+  useEffect(() => {
+    restoreSectionSnapshot(modules[activeIndex].key);
+  }, [activeIndex, restoreSectionSnapshot]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -132,7 +137,6 @@ export default function StudioShell({ children }: StudioShellProps) {
             <HeadshotCanvas imageUrl={canvases.headshot.current_image_url} />
             <FullBodyCanvas imageUrl={canvases.fullbody.current_image_url} />
             <HandWristCanvas imageUrl={canvases.handwrist.current_image_url} />
-            <FeetCanvas imageUrl={canvases.feet.current_image_url} />
           </div>
         </aside>
       </main>

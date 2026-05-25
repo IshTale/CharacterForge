@@ -3,7 +3,7 @@
 import CanvasUploadField from "@/components/studio/upload/CanvasUploadField";
 import type { CanvasKey } from "@/types/canvas";
 
-const UPLOAD_ORDER: CanvasKey[] = ["headshot", "fullbody", "handwrist", "feet"];
+const UPLOAD_ORDER: CanvasKey[] = ["headshot", "fullbody", "handwrist"];
 
 export default function UploadPage() {
   return (
@@ -11,7 +11,7 @@ export default function UploadPage() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-white">Upload Base Photos</h1>
         <p className="text-sm text-gray-400">
-          Each canvas is validated against Perfect Corp requirements before upload. All four photos
+          Each canvas is validated against Perfect Corp requirements before upload. These photos
           are required before continuing to styling modules.
         </p>
       </header>

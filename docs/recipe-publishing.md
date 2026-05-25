@@ -52,7 +52,7 @@ Re-publishing today always creates a **new** `recipe_id` (no upsert). Updates to
 | HTTP list | `GET /api/recipes` | `{ data: RecipeListItem[], total }` |
 | HTTP detail | `GET /api/recipes/:recipe_id` | `{ data: PublishedRecipe }` |
 
-**Community try-on** (future): load `PublishedRecipe` via `GET /api/recipes/:id`, upload the viewer’s four base photos, run the same pipeline helpers as the studio (`runMakeupVto`, `runWardrobePipeline`, etc.) with the stored parameters unchanged.
+**Community try-on** (future): load `PublishedRecipe` via `GET /api/recipes/:id`, upload the viewer’s base photos, run the same pipeline helpers as the studio (`runMakeupVto`, `runWardrobePipeline`, etc.) with the stored parameters unchanged.
 
 ## Storage layout
 
