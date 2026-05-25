@@ -3,7 +3,12 @@ export function resolvePerfectCorpFilePath(module: string): {
   apiVersion: "v2.0" | "v2.1";
   segment: string;
 } {
-  if (module === "ring" || module === "bracelet" || module === "watch") {
+  if (
+    module === "ring" ||
+    module === "bracelet" ||
+    module === "watch" ||
+    module === "necklace"
+  ) {
     return { apiVersion: "v2.0", segment: `2d-vto/${module}` };
   }
   if (module === "hair-transfer") {

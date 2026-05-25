@@ -57,9 +57,8 @@ export async function applyRing(payload: JewelryVtoPayload) {
     "/task/2d-vto/ring",
     sourceObjectPayload(payload, {
       ring_need_remove_background: true,
-      ring_anchor_point: null,
       ring_wearing_finger: ringFingerIndex(payload.finger),
-      ring_wearing_location: null,
+      ring_wearing_location: 0.5,
       ring_shadow_intensity: 0.15,
       ring_ambient_light_intensity: 1
     }),
@@ -72,8 +71,6 @@ export async function applyBracelet(payload: JewelryVtoPayload) {
     "/task/2d-vto/bracelet",
     sourceObjectPayload(payload, {
       bracelet_need_remove_background: true,
-      bracelet_anchor_point: null,
-      bracelet_wearing_location: null,
       bracelet_shadow_intensity: 0.3,
       bracelet_ambient_light_intensity: 1
     }),
@@ -86,8 +83,6 @@ export async function applyWatch(payload: JewelryVtoPayload) {
     "/task/2d-vto/watch",
     sourceObjectPayload(payload, {
       watch_need_remove_background: true,
-      watch_anchor_point: null,
-      watch_wearing_location: null,
       watch_shadow_intensity: 0.3,
       watch_ambient_light_intensity: 1
     }),
@@ -97,11 +92,12 @@ export async function applyWatch(payload: JewelryVtoPayload) {
 
 export async function applyNecklace(payload: JewelryVtoPayload) {
   return postAndPollV2Task(
-    "/task/necklace",
-    {
-      src_file_id: payload.src_file_id,
-      ...refFields(payload)
-    },
+    "/task/2d-vto/necklace",
+    sourceObjectPayload(payload, {
+      necklace_need_remove_background: true,
+      necklace_shadow_intensity: 0.15,
+      necklace_ambient_light_intensity: 1
+    }),
     { stubPrefix: "necklace" }
   );
 }
