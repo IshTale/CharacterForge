@@ -11,7 +11,7 @@ export const MODULE_CONFIG: Record<string, ModuleConfig> = {
   "makeup-vto": { authFamily: "v2", sourceCanvas: "headshot" },
   "nail-vto": { authFamily: "v2", sourceCanvas: "handwrist" },
   cloth: { authFamily: "v2", sourceCanvas: "fullbody" },
-  hat: { authFamily: "v2", sourceCanvas: "headshot" },
+  hat: { authFamily: "v2", sourceCanvas: "fullbody" },
   bag: { authFamily: "v2", sourceCanvas: "fullbody" },
   shoes: { authFamily: "v2", sourceCanvas: "feet" },
   ring: { authFamily: "v2", sourceCanvas: "handwrist" },

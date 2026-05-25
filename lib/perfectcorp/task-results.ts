@@ -1,18 +1,50 @@
-interface ResultEntry {
-  url?: string;
-  download_url?: string;
-  data?: Array<{ dst_id?: string }>;
-}
+type ResultRecord = Record<string, unknown>;
 
 export interface ParsedTaskResult {
   result_url: string | null;
   dst_id: string | null;
 }
 
-function parseResultEntry(entry: ResultEntry | undefined): ParsedTaskResult {
+function findStringByKey(value: unknown, keys: string[]): string | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findStringByKey(item, keys);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as ResultRecord;
+  for (const key of keys) {
+    if (typeof record[key] === "string") {
+      return record[key];
+    }
+  }
+
+  for (const nested of Object.values(record)) {
+    const found = findStringByKey(nested, keys);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+function parseResultEntry(entry: unknown): ParsedTaskResult {
+  if (typeof entry === "string" && entry.startsWith("http")) {
+    return { result_url: entry, dst_id: null };
+  }
+
   return {
-    result_url: entry?.url ?? entry?.download_url ?? null,
-    dst_id: entry?.data?.[0]?.dst_id ?? null
+    result_url: findStringByKey(entry, ["url", "download_url", "result_url", "image_url"]),
+    dst_id: findStringByKey(entry, ["dst_id", "file_id"])
   };
 }
 
@@ -20,25 +52,9 @@ export function parseTaskResult(
   results: unknown,
   fallbackDstId: string | null = null
 ): ParsedTaskResult {
-  if (Array.isArray(results)) {
-    const parsed = parseResultEntry(results[0] as ResultEntry | undefined);
-    return {
-      result_url: parsed.result_url,
-      dst_id: parsed.dst_id ?? fallbackDstId
-    };
-  }
-
-  if (typeof results === "object" && results !== null) {
-    const parsed = parseResultEntry(results as ResultEntry);
-    return {
-      result_url: parsed.result_url,
-      dst_id: parsed.dst_id ?? fallbackDstId
-    };
-  }
-
-  if (typeof results === "string" && results.startsWith("http")) {
-    return { result_url: results, dst_id: fallbackDstId };
-  }
-
-  return { result_url: null, dst_id: fallbackDstId };
+  const parsed = parseResultEntry(results);
+  return {
+    result_url: parsed.result_url,
+    dst_id: parsed.dst_id ?? fallbackDstId
+  };
 }

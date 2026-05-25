@@ -55,14 +55,14 @@ export function buildWardrobePipelineSteps(
     });
   }
 
-  if (isWardrobeSlotReady(wardrobe.hat) && fileIds.headshot) {
+  if (isWardrobeSlotReady(wardrobe.hat) && fileIds.fullbody) {
     steps.push({
       slotId: "hat",
       module: "hat",
-      canvas: "headshot",
+      canvas: "fullbody",
       label: "Hat",
       payload: {
-        src_file_id: fileIds.headshot,
+        src_file_id: fileIds.fullbody,
         ...refForSlot(wardrobe.hat),
         gender
       }
@@ -103,14 +103,15 @@ export function validateWardrobePipeline(
   if (
     (isWardrobeSlotReady(wardrobe.top) ||
       isWardrobeSlotReady(wardrobe.bottom) ||
+      isWardrobeSlotReady(wardrobe.hat) ||
       isWardrobeSlotReady(wardrobe.bag)) &&
     !fileIds.fullbody
   ) {
-    return "Upload a full-body photo before applying clothing or a bag.";
+    return "Upload a full-body photo before applying wardrobe items.";
   }
 
-  if (isWardrobeSlotReady(wardrobe.hat) && !fileIds.headshot) {
-    return "Upload a headshot before applying a hat.";
+  if (isWardrobeSlotReady(wardrobe.hat) && !fileIds.fullbody) {
+    return "Upload a full-body photo before applying a hat.";
   }
 
   return null;

@@ -11,6 +11,19 @@ function guessContentType(url: string, fallback: string) {
   return fallback;
 }
 
+function isRemoteImageUrl(value: string) {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function fileNameFromUrl(url: string) {
+  try {
+    const pathname = new URL(url).pathname;
+    return pathname.split("/").filter(Boolean).pop() ?? "result.jpg";
+  } catch {
+    return "result.jpg";
+  }
+}
+
 /**
  * Re-register a blob/local preview file with Perfect Corp when tasks receive a proxy file_id.
  */
@@ -19,11 +32,14 @@ export async function ensurePerfectCorpFileId(
   fileId: string,
   kvCache: KvCache
 ): Promise<string> {
-  if (!getV2ApiKey() || !isLocalProxyFileId(fileId)) {
+  if (!getV2ApiKey()) {
     return fileId;
   }
 
-  const publicUrl = await kvCache.getFileUrl(fileId);
+  const publicUrl = isRemoteImageUrl(fileId) ? fileId : await kvCache.getFileUrl(fileId);
+  if (!isRemoteImageUrl(fileId) && !isLocalProxyFileId(fileId)) {
+    return fileId;
+  }
   if (!publicUrl) {
     throw new Error(
       "This photo must be uploaded again. The stored file id is only valid for local preview."
@@ -42,7 +58,7 @@ export async function ensurePerfectCorpFileId(
     publicUrl,
     response.headers.get("content-type") ?? "image/jpeg"
   );
-  const fileName = publicUrl.split("/").pop() ?? "upload.jpg";
+  const fileName = fileNameFromUrl(publicUrl);
 
   const perfectCorpFileId = await uploadPerfectCorpFile(
     module,

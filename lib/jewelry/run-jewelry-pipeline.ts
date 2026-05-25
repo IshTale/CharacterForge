@@ -47,13 +47,14 @@ export async function runJewelryPipeline(
       canvasResults[step.canvas] = result.result_url;
     }
 
-    if (result.dst_id) {
-      canvasFileIds[step.canvas] = result.dst_id;
+    const nextSource = result.dst_id ?? result.result_url;
+    if (nextSource) {
+      canvasFileIds[step.canvas] = nextSource;
       if (step.canvas === "handwrist") {
-        handSrc = result.dst_id;
+        handSrc = nextSource;
       }
       if (step.canvas === "headshot") {
-        headSrc = result.dst_id;
+        headSrc = nextSource;
       }
     }
   }

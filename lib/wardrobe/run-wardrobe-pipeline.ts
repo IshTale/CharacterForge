@@ -28,18 +28,14 @@ export async function runWardrobePipeline(
   const taskIds: string[] = [];
 
   let fullbodySrc = fileIds.fullbody;
-  let headshotSrc = fileIds.headshot;
 
   for (const step of steps) {
     const payload = { ...step.payload };
-    if (step.module === "cloth" && fullbodySrc) {
+    if (
+      (step.module === "cloth" || step.module === "bag" || step.module === "hat") &&
+      fullbodySrc
+    ) {
       payload.src_file_id = fullbodySrc;
-    }
-    if (step.module === "bag" && fullbodySrc) {
-      payload.src_file_id = fullbodySrc;
-    }
-    if (step.module === "hat" && headshotSrc) {
-      payload.src_file_id = headshotSrc;
     }
 
     const result = await runSseTask(step.module, payload);
@@ -49,14 +45,12 @@ export async function runWardrobePipeline(
       canvasResults[step.canvas] = result.result_url;
     }
 
-    if (result.dst_id && (step.module === "cloth" || step.module === "bag")) {
-      fullbodySrc = result.dst_id;
+    const nextSource = result.dst_id ?? result.result_url;
+    if (nextSource && step.canvas === "fullbody") {
+      fullbodySrc = nextSource;
     }
-    if (result.dst_id && step.module === "hat") {
-      headshotSrc = result.dst_id;
-    }
-    if (result.dst_id) {
-      canvasFileIds[step.canvas] = result.dst_id;
+    if (nextSource) {
+      canvasFileIds[step.canvas] = nextSource;
     }
   }
 

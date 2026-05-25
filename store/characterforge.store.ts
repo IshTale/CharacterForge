@@ -124,7 +124,7 @@ export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
 }
 
 const moduleToCanvas: Record<string, CanvasKey[]> = {
-  wardrobe: ["fullbody", "headshot"],
+  wardrobe: ["fullbody"],
   makeup: ["headshot"],
   hair: ["headshot"],
   nails: ["handwrist", "headshot"]
@@ -314,7 +314,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
 
         const result = await runMakeupVto(headshotFileId, effects);
         if (result.result_url) {
-          get().setCanvasImage("headshot", result.result_url, result.dst_id);
+          get().setCanvasImage("headshot", result.result_url, result.dst_id ?? result.result_url);
         }
         get().appendTaskResult("headshot", {
           task_id: result.task_id,
@@ -330,7 +330,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
 
     if (moduleList.includes("wardrobe")) {
       restoreInputSnapshot("wardrobe");
-      const canvases: CanvasKey[] = ["fullbody", "headshot"];
+      const canvases: CanvasKey[] = ["fullbody"];
       canvases.forEach((canvas) => get().setCanvasStatus(canvas, "processing"));
 
       try {
@@ -377,7 +377,7 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       try {
         const result = await runHairTransfer(headshotFileId, hair.transfer);
         if (result.result_url) {
-          get().setCanvasImage("headshot", result.result_url, result.dst_id);
+          get().setCanvasImage("headshot", result.result_url, result.dst_id ?? result.result_url);
         }
         get().appendTaskResult("headshot", {
           task_id: result.task_id,
@@ -416,7 +416,11 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       try {
         const nailResult = await runNailVto(handFileId, nails);
         if (nailResult.result_url) {
-          get().setCanvasImage("handwrist", nailResult.result_url, nailResult.dst_id);
+          get().setCanvasImage(
+            "handwrist",
+            nailResult.result_url,
+            nailResult.dst_id ?? nailResult.result_url
+          );
         }
         get().appendTaskResult("handwrist", {
           task_id: nailResult.task_id,
@@ -425,8 +429,9 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
         });
 
         if (hasJewelry) {
+          const handwristAfterNails = nailResult.dst_id ?? nailResult.result_url ?? handFileId;
           const jewelryResult = await runJewelryPipeline(jewelry, {
-            handwrist: nailResult.dst_id ?? handFileId,
+            handwrist: handwristAfterNails,
             headshot: headshotFileId
           });
           for (const [canvas, url] of Object.entries(jewelryResult.canvasResults)) {

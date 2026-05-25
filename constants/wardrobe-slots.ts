@@ -36,10 +36,10 @@ export const WARDROBE_SLOTS: WardrobeSlotDefinition[] = [
   {
     id: "hat",
     title: "Hat",
-    subtitle: "Headwear applied to your headshot",
+    subtitle: "Headwear applied to your full-body canvas",
     fileModule: "hat",
     tryOnModule: "hat",
-    sourceCanvas: "headshot",
+    sourceCanvas: "fullbody",
     placeholder: "Wide-brim witch hat with silver buckle, product photo"
   },
   {
