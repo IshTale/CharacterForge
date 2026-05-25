@@ -124,14 +124,25 @@ export async function runSseTask(
   return { task_id: taskId, result_url: resultUrl, dst_id: dstId };
 }
 
+export interface UploadModuleFileOptions {
+  /** e.g. `design` for press-on nail art (PNG) vs default canvas source photo */
+  usage?: string;
+  /** Keep original bytes (required for transparent PNG nail art) */
+  preserveOriginal?: boolean;
+}
+
 export async function uploadModuleFile(
   file: File,
-  module: string
+  module: string,
+  options?: UploadModuleFileOptions
 ): Promise<{ file_id: string; public_url?: string }> {
-  const uploadFile = await compressImageForUpload(file, compressOptionsForModule(module));
+  const uploadFile = options?.preserveOriginal
+    ? file
+    : await compressImageForUpload(file, compressOptionsForModule(module));
   const form = new FormData();
   form.append("file", uploadFile);
-  const response = await fetch(`/api/perfectcorp/${module}/file`, {
+  const query = options?.usage ? `?usage=${encodeURIComponent(options.usage)}` : "";
+  const response = await fetch(`/api/perfectcorp/${module}/file${query}`, {
     method: "POST",
     body: form
   });

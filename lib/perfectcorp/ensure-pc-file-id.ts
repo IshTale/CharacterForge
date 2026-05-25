@@ -54,3 +54,11 @@ export async function ensurePerfectCorpFileId(
   await kvCache.setFileUrl(perfectCorpFileId, publicUrl);
   return perfectCorpFileId;
 }
+
+export async function ensurePerfectCorpFileIds(
+  module: string,
+  fileIds: string[],
+  kvCache: KvCache
+) {
+  return Promise.all(fileIds.map((fileId) => ensurePerfectCorpFileId(module, fileId, kvCache)));
+}

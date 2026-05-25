@@ -8,6 +8,7 @@ import { BlobStorage } from "@/lib/storage/blob";
 import { resolveUploadBaseUrl } from "@/lib/storage/local-uploads";
 import { KvCache } from "@/lib/storage/kv";
 import { assertSupportedImageMime } from "@/lib/validation/mime";
+import { validatePressOnNailDesignBuffer } from "@/lib/validation/nail-design";
 import { ImageValidator } from "@/lib/validation/upload";
 
 interface RouteContext {
@@ -34,6 +35,7 @@ function validateByCanvas(
 
 export async function POST(request: Request, context: RouteContext) {
   const { module } = await context.params;
+  const usage = new URL(request.url).searchParams.get("usage");
   const moduleConfig = MODULE_CONFIG[module];
   if (!moduleConfig) {
     return NextResponse.json({ error: `Unsupported module: ${module}` }, { status: 400 });
@@ -53,7 +55,9 @@ export async function POST(request: Request, context: RouteContext) {
     contentType = assertSupportedImageMime(file.type, file.name, byteView);
     const fileLike = { type: contentType, size: file.size, name: file.name };
 
-    if (ACCESSORY_ONLY_MODULES.has(module)) {
+    if (module === "nail-vto" && usage === "design") {
+      validatePressOnNailDesignBuffer(fileLike, byteView);
+    } else if (ACCESSORY_ONLY_MODULES.has(module)) {
       ImageValidator.validateAccessory(fileLike, byteView);
     } else {
       validateByCanvas(moduleConfig.sourceCanvas, fileLike, byteView);

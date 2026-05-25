@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 
 export interface ClothTaskPayload {
   src_file_id: string;
@@ -36,7 +37,7 @@ async function pollVtoTask(
       continue;
     }
     const pollData = (await poll.json()) as {
-      data?: {
+      data?: Record<string, unknown> & {
         task_status?: string;
         results?: Array<{ url?: string; data?: Array<{ dst_id?: string }> }>;
       };
@@ -50,7 +51,7 @@ async function pollVtoTask(
       };
     }
     if (status === "error") {
-      throw new Error("Wardrobe VTO task returned error status.");
+      throw new Error(extractPollErrorMessage(pollPath, pollData));
     }
   }
   throw new Error("Wardrobe VTO task timed out.");

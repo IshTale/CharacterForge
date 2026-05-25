@@ -1,4 +1,5 @@
 import { buildMakeupEffects } from "@/lib/makeup/build-effects";
+import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
 import type { MakeupConfig } from "@/types/recipe";
 
@@ -134,7 +135,10 @@ export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<Makeup
       continue;
     }
     const pollData = (await poll.json()) as {
-      data?: { task_status?: string; results?: Array<{ url?: string }> };
+      data?: Record<string, unknown> & {
+        task_status?: string;
+        results?: Array<{ url?: string }>;
+      };
     };
     const status = pollData.data?.task_status;
     if (status === "success") {
@@ -142,7 +146,7 @@ export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<Makeup
       return { task_id: taskId, result_url: resultUrl, payload };
     }
     if (status === "error") {
-      throw new Error("Makeup VTO task returned error status.");
+      throw new Error(extractPollErrorMessage("/task/makeup-vto", pollData));
     }
   }
 

@@ -64,7 +64,8 @@ export function buildWardrobePipelineSteps(
       label: "Hat",
       payload: {
         src_file_id: fileIds.headshot,
-        ...refForSlot(wardrobe.hat)
+        ...refForSlot(wardrobe.hat),
+        gender
       }
     });
   }

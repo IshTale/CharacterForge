@@ -5,7 +5,7 @@ import { useState } from "react";
 import PhotoUploader from "@/components/shared/PhotoUploader";
 import HandMapSelector from "@/components/studio/nails/HandMapSelector";
 import { uploadModuleFile } from "@/lib/api/sse-task-client";
-import { ImageValidator } from "@/lib/validation/upload";
+import { validatePressOnNailDesignFile } from "@/lib/validation/nail-design";
 import {
   activeNailStyle,
   type NailFinger,
@@ -66,8 +66,11 @@ export default function NailStylePanel({ config, onChange, onDirty }: NailStyleP
     setBusy(true);
     setError(null);
     try {
-      ImageValidator.validateAccessory(file);
-      const uploaded = await uploadModuleFile(file, "nail-vto");
+      await validatePressOnNailDesignFile(file);
+      const uploaded = await uploadModuleFile(file, "nail-vto", {
+        usage: "design",
+        preserveOriginal: true
+      });
       patchActive({
         texture: "custom",
         custom_texture_url: uploaded.public_url ?? null,

@@ -21,7 +21,11 @@ import {
 } from "@/lib/perfectcorp/modules/wardrobe";
 import type { HairTransferTaskPayload } from "@/lib/hair/build-hair-transfer-payload";
 import type { NailVtoTaskPayload } from "@/types/nail-api";
-import { ensurePerfectCorpFileId } from "@/lib/perfectcorp/ensure-pc-file-id";
+import { getV2ApiKey } from "@/lib/perfectcorp/api-env";
+import {
+  ensurePerfectCorpFileId,
+  ensurePerfectCorpFileIds
+} from "@/lib/perfectcorp/ensure-pc-file-id";
 import { createTask, getTask, normaliseTaskStatus } from "@/lib/perfectcorp/task-engine";
 import { KvCache } from "@/lib/storage/kv";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
@@ -56,7 +60,12 @@ function parseAccessoryPayload(body: Record<string, unknown>): AccessoryTaskPayl
   if (typeof body.src_file_id !== "string") {
     return null;
   }
-  return body as unknown as AccessoryTaskPayload;
+  return {
+    src_file_id: body.src_file_id,
+    ref_file_id: typeof body.ref_file_id === "string" ? body.ref_file_id : undefined,
+    ref_file_url: typeof body.ref_file_url === "string" ? body.ref_file_url : undefined,
+    gender: body.gender === "male" ? "male" : "female"
+  };
 }
 
 function parseHairTransferPayload(body: Record<string, unknown>): HairTransferTaskPayload | null {
@@ -109,6 +118,26 @@ async function resolvePayloadFileIds(
   }
 }
 
+async function resolveNailPayloadFileIds(
+  module: string,
+  kvCache: KvCache,
+  payload: NailVtoTaskPayload
+) {
+  payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, kvCache);
+  if (payload.ref_file_ids?.length) {
+    payload.ref_file_ids = await ensurePerfectCorpFileIds(module, payload.ref_file_ids, kvCache);
+  }
+}
+
+function sendTaskError(
+  message: string,
+  send: (event: string, data: unknown) => void,
+  controller: ReadableStreamDefaultController<Uint8Array>
+) {
+  send("error", { message });
+  controller.close();
+}
+
 async function completeVtoTask(
   module: string,
   result: { task_id: string | null; result_url: string | null; dst_id: string | null },
@@ -128,7 +157,7 @@ async function completeVtoTask(
     controller.close();
     return true;
   }
-  if (result.dst_id) {
+  if (result.dst_id && !getV2ApiKey()) {
     await runStub(
       module,
       typeof payload === "string" ? payload : JSON.stringify(payload),
@@ -210,6 +239,8 @@ export async function POST(request: Request, context: RouteContext) {
           ) {
             return;
           }
+          sendTaskError("Makeup VTO did not return a result image.", send, controller);
+          return;
         }
 
         if (module === "image-gen" && typeof body.prompt === "string") {
@@ -231,12 +262,16 @@ export async function POST(request: Request, context: RouteContext) {
             return;
           }
 
-          await runStubTask(
-            module,
-            `${body.prompt}:${body.slot_id ?? "item"}`,
-            send
-          );
-          controller.close();
+          if (!getV2ApiKey()) {
+            await runStubTask(
+              module,
+              `${body.prompt}:${body.slot_id ?? "item"}`,
+              send
+            );
+            controller.close();
+            return;
+          }
+          sendTaskError("Image generation did not return a result.", send, controller);
           return;
         }
 
@@ -246,22 +281,13 @@ export async function POST(request: Request, context: RouteContext) {
             send("progress", { step: "try-on" });
             await resolvePayloadFileIds(module, kvCache, payload);
             const result = await applyCloth(payload);
-            if (result.task_id && result.result_url) {
-              send("task_started", { module, task_id: result.task_id, task_status: "processing" });
-              send("task_complete", {
-                task_id: result.task_id,
-                task_status: "success",
-                result_url: result.result_url,
-                dst_id: result.dst_id
-              });
-              controller.close();
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
               return;
             }
-            if (result.dst_id) {
-              await runStubTask(module, JSON.stringify(payload), send);
-              controller.close();
-              return;
-            }
+            sendTaskError("Cloth VTO did not return a result image.", send, controller);
+            return;
           }
         }
 
@@ -276,6 +302,8 @@ export async function POST(request: Request, context: RouteContext) {
             ) {
               return;
             }
+            sendTaskError("Hair transfer did not return a result image.", send, controller);
+            return;
           }
         }
 
@@ -283,13 +311,15 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseNailVtoPayload(body);
           if (payload) {
             send("progress", { step: "nail-vto" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolveNailPayloadFileIds(module, kvCache, payload);
             const result = await applyNails(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
             ) {
               return;
             }
+            sendTaskError("Nail VTO did not return a result image.", send, controller);
+            return;
           }
         }
 
@@ -357,30 +387,31 @@ export async function POST(request: Request, context: RouteContext) {
             const applyFn =
               module === "hat" ? applyHat : module === "bag" ? applyBag : applyShoes;
             const result = await applyFn(payload);
-            if (result.task_id && result.result_url) {
-              send("task_started", { module, task_id: result.task_id, task_status: "processing" });
-              send("task_complete", {
-                task_id: result.task_id,
-                task_status: "success",
-                result_url: result.result_url,
-                dst_id: result.dst_id
-              });
-              controller.close();
+            if (
+              await completeVtoTask(module, result, payload, send, controller, runStubTask)
+            ) {
               return;
             }
-            if (result.dst_id) {
-              await runStubTask(module, JSON.stringify(payload), send);
-              controller.close();
-              return;
-            }
+            sendTaskError(`${module} VTO did not return a result image.`, send, controller);
+            return;
           }
         }
 
-        await runStubTask(
-          module,
-          requestSeed ?? (makeupPayload ? JSON.stringify(makeupPayload.effects) : undefined),
-          send
-        );
+        if (!getV2ApiKey()) {
+          const stubSeed =
+            requestSeed ??
+            (module === "makeup-vto" && Array.isArray(body.effects)
+              ? JSON.stringify(body.effects)
+              : undefined);
+          await runStubTask(module, stubSeed, send);
+        } else {
+          sendTaskError(
+            "Task did not produce a result. Check uploads and configuration, then try again.",
+            send,
+            controller
+          );
+          return;
+        }
       } catch (error) {
         send("error", {
           message: error instanceof Error ? error.message : "Task failed."
