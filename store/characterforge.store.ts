@@ -15,10 +15,8 @@ import { hairHasSelection, normalizeHairConfig } from "@/lib/hair/normalize-hair
 import { runHairTransfer } from "@/lib/hair/run-hair-transfer";
 import { jewelryHasSelection } from "@/lib/jewelry/build-pipeline";
 import { runJewelryPipeline } from "@/lib/jewelry/run-jewelry-pipeline";
-import { runNailVto } from "@/lib/nails/run-nail-vto";
-import { activeNailStyle } from "@/types/nails";
 import { prepareRecipeForPublish } from "@/lib/recipe/publishing";
-import type { Recipe } from "@/types/recipe";
+import type { JewelryConfig, Recipe } from "@/types/recipe";
 import { createDefaultNailsConfig } from "@/types/nails";
 import { createDefaultWardrobeConfig } from "@/types/wardrobe";
 import type { CanvasSlice } from "@/store/canvas.slice";
@@ -32,13 +30,27 @@ const createEmptyCanvas = (): CanvasState => ({
 });
 
 const canvasKeys: CanvasKey[] = ["headshot", "fullbody", "handwrist", "feet"];
-const studioSections: StudioSectionKey[] = ["upload", "wardrobe", "makeup", "hair", "nails"];
+const studioSections: StudioSectionKey[] = ["upload", "wardrobe", "accessories", "hair", "makeup"];
 const moduleToSection: Record<string, StudioSectionKey> = {
   wardrobe: "wardrobe",
   makeup: "makeup",
   hair: "hair",
-  nails: "nails"
+  accessories: "accessories"
 };
+
+function hasJewelryRef(entry: { ref_file_id?: string; ref_image_url?: string } | null | undefined) {
+  return Boolean(entry?.ref_file_id || entry?.ref_image_url);
+}
+
+function jewelryCanvasTargets(jewelry: JewelryConfig) {
+  return {
+    handwrist:
+      jewelry.rings.some(hasJewelryRef) ||
+      jewelry.bracelets.some(hasJewelryRef) ||
+      hasJewelryRef(jewelry.watch),
+    headshot: hasJewelryRef(jewelry.necklace)
+  };
+}
 
 function createSectionSnapshot(
   canvases: Record<CanvasKey, CanvasState>
@@ -127,7 +139,7 @@ const moduleToCanvas: Record<string, CanvasKey[]> = {
   wardrobe: ["fullbody"],
   makeup: ["headshot"],
   hair: ["headshot"],
-  nails: ["handwrist", "headshot"]
+  accessories: ["handwrist", "headshot"]
 };
 
 function buildTaskResult(canvas: CanvasKey, moduleName: string): TaskResult {
@@ -259,7 +271,11 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
   triggerRender: async (modules: string[]) => {
     const moduleList = [...modules];
     const stubModules = moduleList.filter(
-      (name) => name !== "makeup" && name !== "wardrobe" && name !== "hair" && name !== "nails"
+      (name) =>
+        name !== "makeup" &&
+        name !== "wardrobe" &&
+        name !== "hair" &&
+        name !== "accessories"
     );
     const restoreInputSnapshot = (moduleName: string) => {
       const section = moduleToSection[moduleName];
@@ -278,6 +294,16 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       const section = moduleToSection[moduleName];
       const snapshot = section ? findSnapshotBefore(get().sectionSnapshots, section) : null;
       return snapshot?.canvases[canvas].file_id ?? get().fileIds[canvas];
+    };
+    const sourceImageOrFileId = (moduleName: string, canvas: CanvasKey) => {
+      const section = moduleToSection[moduleName];
+      const snapshot = section ? findSnapshotBefore(get().sectionSnapshots, section) : null;
+      return (
+        snapshot?.canvases[canvas].image_url ??
+        snapshot?.canvases[canvas].file_id ??
+        get().canvases[canvas].current_image_url ??
+        get().fileIds[canvas]
+      );
     };
     const saveModuleSnapshot = (moduleName: string) => {
       const section = moduleToSection[moduleName];
@@ -391,76 +417,55 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       }
     }
 
-    if (moduleList.includes("nails")) {
-      restoreInputSnapshot("nails");
-      const handFileId = sourceFileId("nails", "handwrist");
-      const headshotFileId = sourceFileId("nails", "headshot");
-      if (!handFileId) {
-        throw new Error("Upload a hand & wrist photo before applying nails.");
-      }
-
-      const nails = get().recipe.nails;
-      const active = activeNailStyle(nails);
-      if (!active.custom_texture_url && !active.custom_texture_file_id) {
-        throw new Error("Upload nail art for the selected coverage before applying.");
-      }
-
+    if (moduleList.includes("accessories")) {
+      restoreInputSnapshot("accessories");
+      const handFileId = sourceImageOrFileId("accessories", "handwrist");
+      const headshotFileId = sourceImageOrFileId("accessories", "headshot");
       const jewelry = get().recipe.jewelry;
       const hasJewelry = jewelryHasSelection(jewelry);
+      const targets = jewelryCanvasTargets(jewelry);
 
-      get().setCanvasStatus("handwrist", "processing");
-      if (hasJewelry && jewelry.necklace) {
+      if (!hasJewelry) {
+        throw new Error("Upload at least one accessory reference before applying.");
+      }
+      if (targets.handwrist && !handFileId) {
+        throw new Error("Upload a hand & wrist photo before applying hand accessories.");
+      }
+      if (targets.headshot && !headshotFileId) {
+        throw new Error("Upload a headshot before applying a necklace.");
+      }
+
+      if (targets.handwrist) {
+        get().setCanvasStatus("handwrist", "processing");
+      }
+      if (targets.headshot) {
         get().setCanvasStatus("headshot", "processing");
       }
 
       try {
-        const nailResult = await runNailVto(handFileId, nails);
-        if (nailResult.result_url) {
-          get().setCanvasImage(
-            "handwrist",
-            nailResult.result_url,
-            nailResult.result_url ?? nailResult.dst_id
-          );
-        }
-        get().appendTaskResult("handwrist", {
-          task_id: nailResult.task_id,
-          task_status: "success",
-          result_url: nailResult.result_url ?? undefined
+        const jewelryResult = await runJewelryPipeline(jewelry, {
+          handwrist: handFileId,
+          headshot: headshotFileId
         });
+        const taskId = jewelryResult.task_ids.join("-") || `jewelry-${Date.now()}`;
 
-        if (hasJewelry) {
-          const handwristAfterNails = nailResult.result_url ?? nailResult.dst_id ?? handFileId;
-          const jewelryResult = await runJewelryPipeline(jewelry, {
-            handwrist: handwristAfterNails,
-            headshot: headshotFileId
-          });
-          for (const [canvas, url] of Object.entries(jewelryResult.canvasResults)) {
-            const canvasKey = canvas as CanvasKey;
-            if (url) {
-              get().setCanvasImage(
-                canvasKey,
-                url,
-                jewelryResult.canvasFileIds[canvasKey] ?? null
-              );
-            }
+        for (const [canvas, url] of Object.entries(jewelryResult.canvasResults)) {
+          const canvasKey = canvas as CanvasKey;
+          if (url) {
+            get().setCanvasImage(canvasKey, url, jewelryResult.canvasFileIds[canvasKey] ?? null);
           }
-          get().appendTaskResult("handwrist", {
-            task_id: jewelryResult.task_ids.join("-") || `jewelry-${Date.now()}`,
+          get().appendTaskResult(canvasKey, {
+            task_id: taskId,
             task_status: "success",
-            result_url: jewelryResult.canvasResults.handwrist ?? undefined
+            result_url: url ?? undefined
           });
-          if (jewelryResult.canvasResults.headshot) {
-            get().appendTaskResult("headshot", {
-              task_id: jewelryResult.task_ids.join("-") || `jewelry-${Date.now()}`,
-              task_status: "success",
-              result_url: jewelryResult.canvasResults.headshot
-            });
-          }
         }
-        saveModuleSnapshot("nails");
+        saveModuleSnapshot("accessories");
       } catch (error) {
-        get().setCanvasStatus("handwrist", "error");
-        if (hasJewelry && jewelry.necklace) {
+        if (targets.handwrist) {
+          get().setCanvasStatus("handwrist", "error");
+        }
+        if (targets.headshot) {
           get().setCanvasStatus("headshot", "error");
         }
         throw error;

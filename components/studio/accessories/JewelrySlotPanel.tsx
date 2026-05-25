@@ -67,11 +67,11 @@ export default function JewelrySlotPanel({
             isReady ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-800 text-gray-500"
           }`}
         >
-          {busy ? "Uploading…" : isReady ? "Ready" : "Empty"}
+          {busy ? "Uploading..." : isReady ? "Ready" : "Empty"}
         </span>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">JPG or PNG · Max 5MB · 1024×1024 recommended</p>
+      <p className="mt-3 text-xs text-gray-500">JPG or PNG, max 5MB, 1024x1024 recommended</p>
 
       <div className="mt-4">
         <PhotoUploader

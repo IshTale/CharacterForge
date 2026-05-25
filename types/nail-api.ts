@@ -15,8 +15,10 @@ export interface NailVtoDesignEffect {
 
 export interface NailVtoTaskPayload {
   version: "1.0";
-  src_file_id: string;
+  src_file_id?: string;
+  src_file_url?: string;
   effect_type: NailVtoEffectType;
   ref_file_ids?: string[];
+  ref_file_urls?: string[];
   effects: NailVtoDesignEffect[];
 }

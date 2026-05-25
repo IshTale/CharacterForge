@@ -12,14 +12,14 @@ export const JEWELRY_SLOTS: JewelrySlotDefinition[] = [
   {
     id: "ring",
     title: "Ring",
-    subtitle: "Reference photo for ring VTO (1024×1024 recommended)",
+    subtitle: "Reference photo for ring try-on (1024x1024 recommended)",
     fileModule: "ring",
     sourceCanvas: "handwrist"
   },
   {
     id: "bracelet",
     title: "Bracelet",
-    subtitle: "Wrist accessory reference for bracelet VTO",
+    subtitle: "Wrist accessory reference for bracelet try-on",
     fileModule: "bracelet",
     sourceCanvas: "handwrist"
   },
@@ -33,7 +33,7 @@ export const JEWELRY_SLOTS: JewelrySlotDefinition[] = [
   {
     id: "necklace",
     title: "Necklace",
-    subtitle: "Necklace reference applied to headshot",
+    subtitle: "Necklace reference applied to the headshot",
     fileModule: "necklace",
     sourceCanvas: "headshot"
   }

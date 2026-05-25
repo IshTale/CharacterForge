@@ -25,7 +25,7 @@ export const CANVAS_UPLOAD_REQUIREMENTS: Record<CanvasKey, CanvasUploadRequireme
   },
   handwrist: {
     label: "Hand & Wrist",
-    poseHint: "Back of one hand, nails visible and unoccluded. Hand should fill about half the image.",
+    poseHint: "Back of one hand with wrist visible. Keep fingers and wrist unobstructed.",
     maxLongSidePx: 2048,
     maxFileSizeMb: 10,
     formats: "JPG, JPEG, PNG"

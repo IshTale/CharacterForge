@@ -1,7 +1,7 @@
 import type { TaskResult, TaskStatus } from "@/types/perfectcorp";
 
 export type CanvasKey = "headshot" | "fullbody" | "handwrist" | "feet";
-export type StudioSectionKey = "upload" | "wardrobe" | "makeup" | "hair" | "nails";
+export type StudioSectionKey = "upload" | "wardrobe" | "accessories" | "hair" | "makeup";
 
 export interface CanvasSnapshot {
   image_url: string | null;

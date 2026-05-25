@@ -85,7 +85,7 @@ function parseHairTransferPayload(body: Record<string, unknown>): HairTransferTa
 function parseNailVtoPayload(body: Record<string, unknown>): NailVtoTaskPayload | null {
   if (
     body.version !== "1.0" ||
-    typeof body.src_file_id !== "string" ||
+    (typeof body.src_file_id !== "string" && typeof body.src_file_url !== "string") ||
     typeof body.effect_type !== "string" ||
     !Array.isArray(body.effects)
   ) {
@@ -102,6 +102,20 @@ function parseJewelryPayload(body: Record<string, unknown>): JewelryVtoPayload |
     return null;
   }
   return body as unknown as JewelryVtoPayload;
+}
+
+function isPublicRemoteUrl(url: string) {
+  try {
+    const { hostname, protocol } = new URL(url);
+    return (
+      (protocol === "https:" || protocol === "http:") &&
+      hostname !== "localhost" &&
+      hostname !== "127.0.0.1" &&
+      hostname !== "0.0.0.0"
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function resolvePayloadFileIds(
@@ -123,9 +137,25 @@ async function resolveNailPayloadFileIds(
   kvCache: KvCache,
   payload: NailVtoTaskPayload
 ) {
-  payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, kvCache);
+  if (payload.src_file_id) {
+    const sourceUrl = await kvCache.getFileUrl(payload.src_file_id);
+    if (sourceUrl && isPublicRemoteUrl(sourceUrl)) {
+      payload.src_file_url = sourceUrl;
+      delete payload.src_file_id;
+    } else {
+      payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, kvCache);
+    }
+  }
   if (payload.ref_file_ids?.length) {
-    payload.ref_file_ids = await ensurePerfectCorpFileIds(module, payload.ref_file_ids, kvCache);
+    const refUrls = await Promise.all(
+      payload.ref_file_ids.map((fileId) => kvCache.getFileUrl(fileId))
+    );
+    if (refUrls.every((url): url is string => Boolean(url && isPublicRemoteUrl(url)))) {
+      payload.ref_file_urls = refUrls;
+      delete payload.ref_file_ids;
+    } else {
+      payload.ref_file_ids = await ensurePerfectCorpFileIds(module, payload.ref_file_ids, kvCache);
+    }
   }
 }
 

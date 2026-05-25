@@ -16,9 +16,9 @@ interface StudioShellProps {
 const modules: Array<{ href: string; label: string; key: StudioSectionKey }> = [
   { href: "/studio/upload", label: "Upload", key: "upload" },
   { href: "/studio/wardrobe", label: "Wardrobe", key: "wardrobe" },
-  { href: "/studio/makeup", label: "Makeup", key: "makeup" },
+  { href: "/studio/accessories", label: "Accessories", key: "accessories" },
   { href: "/studio/hair", label: "Hair", key: "hair" },
-  { href: "/studio/nails", label: "Nails", key: "nails" }
+  { href: "/studio/makeup", label: "Makeup", key: "makeup" }
 ];
 
 export default function StudioShell({ children }: StudioShellProps) {
@@ -73,7 +73,7 @@ export default function StudioShell({ children }: StudioShellProps) {
               </Link>
             ) : (
               <span
-                title="Upload all four base photos before continuing"
+                title="Upload all required base photos before continuing"
                 className="cursor-not-allowed rounded-md bg-white/40 px-4 py-2 text-sm font-medium text-black/60"
               >
                 Next
