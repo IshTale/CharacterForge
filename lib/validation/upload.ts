@@ -3,6 +3,7 @@ import {
   getImageDimensionsFromBuffer,
   getImageDimensionsFromFile,
   longSide,
+  shortSide,
   type ImageDimensions
 } from "@/lib/validation/image-dimensions";
 import { assertSupportedImageMime } from "@/lib/validation/mime";
@@ -64,6 +65,12 @@ export class ImageValidator {
     this.validateMimeAndSize(file, 10, bytes);
     if (dimensions) {
       this.validateLongSide(dimensions, CANVAS_MAX_LONG_SIDE.handwrist, "Hand & wrist");
+      const short = shortSide(dimensions);
+      if (short < 256) {
+        throw new Error(
+          `Hand & wrist short side is ${short}px. Minimum allowed is 256px.`
+        );
+      }
     }
   }
 

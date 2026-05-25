@@ -7,6 +7,10 @@ export function longSide({ width, height }: ImageDimensions): number {
   return Math.max(width, height);
 }
 
+export function shortSide({ width, height }: ImageDimensions): number {
+  return Math.min(width, height);
+}
+
 /** Read width/height from PNG or JPEG file headers (server-safe). */
 export function getImageDimensionsFromBuffer(bytes: Uint8Array): ImageDimensions | null {
   if (bytes.length < 24) {

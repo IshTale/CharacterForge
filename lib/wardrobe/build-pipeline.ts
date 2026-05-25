@@ -55,34 +55,6 @@ export function buildWardrobePipelineSteps(
     });
   }
 
-  if (isWardrobeSlotReady(wardrobe.hat) && fileIds.fullbody) {
-    steps.push({
-      slotId: "hat",
-      module: "hat",
-      canvas: "fullbody",
-      label: "Hat",
-      payload: {
-        src_file_id: fileIds.fullbody,
-        ...refForSlot(wardrobe.hat),
-        gender
-      }
-    });
-  }
-
-  if (isWardrobeSlotReady(wardrobe.bag) && fileIds.fullbody) {
-    steps.push({
-      slotId: "bag",
-      module: "bag",
-      canvas: "fullbody",
-      label: "Bag",
-      payload: {
-        src_file_id: fileIds.fullbody,
-        ...refForSlot(wardrobe.bag),
-        gender
-      }
-    });
-  }
-
   return steps;
 }
 
@@ -90,28 +62,15 @@ export function validateWardrobePipeline(
   wardrobe: WardrobeConfig,
   fileIds: WardrobeFileIds
 ): string | null {
-  const hasAnySlot =
-    isWardrobeSlotReady(wardrobe.top) ||
-    isWardrobeSlotReady(wardrobe.bottom) ||
-    isWardrobeSlotReady(wardrobe.hat) ||
-    isWardrobeSlotReady(wardrobe.bag);
+  const hasClothingSlot =
+    isWardrobeSlotReady(wardrobe.top) || isWardrobeSlotReady(wardrobe.bottom);
 
-  if (!hasAnySlot) {
-    return "Configure at least one wardrobe item before applying.";
+  if (!hasClothingSlot) {
+    return "Configure at least one clothing item before applying.";
   }
 
-  if (
-    (isWardrobeSlotReady(wardrobe.top) ||
-      isWardrobeSlotReady(wardrobe.bottom) ||
-      isWardrobeSlotReady(wardrobe.hat) ||
-      isWardrobeSlotReady(wardrobe.bag)) &&
-    !fileIds.fullbody
-  ) {
-    return "Upload a full-body photo before applying wardrobe items.";
-  }
-
-  if (isWardrobeSlotReady(wardrobe.hat) && !fileIds.fullbody) {
-    return "Upload a full-body photo before applying a hat.";
+  if (!fileIds.fullbody) {
+    return "Upload a full-body photo before applying clothing.";
   }
 
   return null;

@@ -31,10 +31,7 @@ export async function runWardrobePipeline(
 
   for (const step of steps) {
     const payload = { ...step.payload };
-    if (
-      (step.module === "cloth" || step.module === "bag" || step.module === "hat") &&
-      fullbodySrc
-    ) {
+    if (step.module === "cloth" && fullbodySrc) {
       payload.src_file_id = fullbodySrc;
     }
 

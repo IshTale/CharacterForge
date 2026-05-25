@@ -69,10 +69,10 @@ export default function WardrobePage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Wardrobe & Accessories</h1>
+        <h1 className="text-2xl font-semibold text-white">Wardrobe</h1>
         <p className="text-sm text-gray-400">
-          Configure each piece with AI generation or your own product photo, then apply the full
-          try-on pipeline.
+          Configure clothing with AI generation or your own product photo, then apply the clothing
+          try-on pipeline. Accessory references are saved but not rendered here.
         </p>
       </header>
 
@@ -134,7 +134,7 @@ export default function WardrobePage() {
         disabled={applying}
         className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-60"
       >
-        {applying ? "Applying wardrobe…" : "Apply full wardrobe"}
+        {applying ? "Applying clothing…" : "Apply clothing"}
       </button>
     </div>
   );
