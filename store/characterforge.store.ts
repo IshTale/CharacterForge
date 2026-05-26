@@ -493,11 +493,18 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     get().clearDirty(modules);
   },
   publishRecipe: async () => {
+    const publishPayload = prepareRecipeForPublish(get().recipe);
+    // #region agent log
+    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3,H4',location:'store/characterforge.store.ts:publishRecipe:start',message:'Client publish started',data:{hasExistingRecipeId:Boolean(get().recipe.recipe_id),payloadCreatedAt:publishPayload.created_at,dirtyModules:[...get().dirtyModules],hasWindow:typeof window!=='undefined'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const response = await fetch("/api/recipes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(prepareRecipeForPublish(get().recipe))
+      body: JSON.stringify(publishPayload)
     });
+    // #region agent log
+    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3',location:'store/characterforge.store.ts:publishRecipe:response',message:'Client publish response received',data:{status:response.status,ok:response.ok},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!response.ok) {
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(payload.error ?? "Failed to publish recipe.");
@@ -514,6 +521,9 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       }
     }));
     if (typeof window !== "undefined") {
+      // #region agent log
+      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3,H4',location:'store/characterforge.store.ts:publishRecipe:redirect',message:'Client publish parsed id and redirecting',data:{recipeId,redirectTo:'/'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       window.location.assign("/");
     }
     return recipeId;

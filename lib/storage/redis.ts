@@ -185,12 +185,24 @@ export class RedisCache {
 
   async listRecipes() {
     const persisted = await this.safeGet<RecipeRecord[]>("recipes:all");
-    if (persisted) return persisted;
-    return this.readRecipeFallback();
+    if (persisted) {
+      // #region agent log
+      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:persisted',message:'Storage listed recipes from persisted store',data:{source:'persisted',count:persisted.length,recipeIds:persisted.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return persisted;
+    }
+    const fallback = await this.readRecipeFallback();
+    // #region agent log
+    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:fallback',message:'Storage listed recipes from fallback store',data:{source:'fallback',count:fallback.length,recipeIds:fallback.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    return fallback;
   }
 
   async saveRecipes(recipes: RecipeRecord[]) {
     const persisted = await this.safeSet("recipes:all", recipes);
     if (!persisted) await this.writeRecipeFallback(recipes);
+    // #region agent log
+    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:saveRecipes',message:'Storage saved recipes',data:{source:persisted?'persisted':'fallback',count:recipes.length,recipeIds:recipes.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   }
 }
