@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { createRecipe, listRecipes } from "@/lib/recipe/repository";
 import { deserialiseRecipe } from "@/lib/recipe/serializer";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const recipes = await listRecipes();
-  return NextResponse.json({ data: recipes, total: recipes.length });
+  return NextResponse.json(
+    { data: recipes, total: recipes.length },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(request: Request) {

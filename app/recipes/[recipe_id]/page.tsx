@@ -9,6 +9,8 @@ import type {
   WardrobeSlotId
 } from "@/types/recipe";
 
+export const dynamic = "force-dynamic";
+
 interface RecipePageProps {
   params: Promise<{ recipe_id: string }>;
 }
