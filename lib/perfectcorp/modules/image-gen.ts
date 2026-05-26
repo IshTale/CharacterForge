@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PERFECTCORP_V2_BASE } from "@/lib/perfectcorp/api-env";
+import { PERFECTCORP_V2_BASE, getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 
@@ -42,7 +42,7 @@ async function resolveTemplateId(apiKey: string) {
 }
 
 export async function generateImageItem(input: GenerateImageInput): Promise<GenerateImageResult> {
-  const apiKey = process.env.PERFECTCORP_V2_API_KEY;
+  const apiKey = getV2ApiKey();
   const fileId = `gen_${randomUUID()}`;
 
   if (!apiKey) {

@@ -15,29 +15,6 @@ interface RouteContext {
   params: Promise<{ module: string }>;
 }
 
-function agentUploadDebugLog(
-  hypothesisId: string,
-  location: string,
-  message: string,
-  data: Record<string, unknown>
-) {
-  const payload = {
-    sessionId: "e6857c",
-    runId: "pre-fix",
-    hypothesisId,
-    location,
-    message,
-    data,
-    timestamp: Date.now()
-  };
-  console.info("[agent-debug-upload]", payload);
-  void fetch("http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e6857c" },
-    body: JSON.stringify(payload)
-  }).catch(() => {});
-}
-
 /** Accessory reference uploads only (not base canvas photos). */
 const ACCESSORY_ONLY_MODULES = new Set([
   "hat",
@@ -82,21 +59,6 @@ export async function POST(request: Request, context: RouteContext) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const byteView = new Uint8Array(bytes);
-  // #region agent log
-  agentUploadDebugLog(
-    "H2,H5",
-    "app/api/perfectcorp/[module]/file/route.ts:POST:file-received",
-    "Server received upload form file",
-    {
-      module,
-      usage,
-      storesReferenceImage,
-      fileType: file.type,
-      fileSize: file.size,
-      byteLength: bytes.length
-    }
-  );
-  // #endregion
 
   let contentType: string;
   try {
@@ -111,20 +73,6 @@ export async function POST(request: Request, context: RouteContext) {
       validateByCanvas(moduleConfig.sourceCanvas, fileLike, byteView);
     }
   } catch (error) {
-    // #region agent log
-    agentUploadDebugLog(
-      "H5",
-      "app/api/perfectcorp/[module]/file/route.ts:POST:validation-error",
-      "Server rejected upload during validation",
-      {
-        module,
-        usage,
-        fileType: file.type,
-        fileSize: file.size,
-        error: error instanceof Error ? error.message : String(error)
-      }
-    );
-    // #endregion
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid upload." },
       { status: 400 }
@@ -188,42 +136,12 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     try {
-      // #region agent log
-      agentUploadDebugLog(
-        "H3",
-        "app/api/perfectcorp/[module]/file/route.ts:POST:perfectcorp-base-upload",
-        "Server starting Perfect Corp base image upload",
-        {
-          module,
-          usage,
-          contentType,
-          byteLength: bytes.length
-        }
-      );
-      // #endregion
       const taskFileId = await uploadPerfectCorpFile(module, bytes, file.name, contentType);
       return NextResponse.json({
         module,
         file_id: taskFileId
       });
     } catch (perfectCorpError) {
-      // #region agent log
-      agentUploadDebugLog(
-        "H3,H4",
-        "app/api/perfectcorp/[module]/file/route.ts:POST:perfectcorp-base-error",
-        "Server caught Perfect Corp base image upload error",
-        {
-          module,
-          usage,
-          contentType,
-          byteLength: bytes.length,
-          error:
-            perfectCorpError instanceof Error
-              ? perfectCorpError.message
-              : String(perfectCorpError)
-        }
-      );
-      // #endregion
       console.error("[perfectcorp/file]", perfectCorpError);
       return NextResponse.json(
         {

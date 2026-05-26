@@ -37,7 +37,9 @@ export async function ensurePerfectCorpFileId(
   }
 
   const publicUrl = isRemoteImageUrl(fileId) ? fileId : await redisCache.getFileUrl(fileId);
-  if (!isRemoteImageUrl(fileId) && !isLocalProxyFileId(fileId)) {
+  const remoteInput = isRemoteImageUrl(fileId);
+  const localProxyInput = isLocalProxyFileId(fileId);
+  if (!remoteInput && !localProxyInput) {
     return fileId;
   }
   if (!publicUrl) {

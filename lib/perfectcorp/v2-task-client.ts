@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PERFECTCORP_V2_BASE } from "@/lib/perfectcorp/api-env";
+import { PERFECTCORP_V2_BASE, getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 
@@ -14,7 +14,7 @@ export async function postAndPollV2Task(
   payload: Record<string, unknown>,
   options?: { apiVersion?: "v2.0" | "v2.1"; stubPrefix?: string }
 ): Promise<V2TaskResult> {
-  const apiKey = process.env.PERFECTCORP_V2_API_KEY;
+  const apiKey = getV2ApiKey();
   const version = options?.apiVersion ?? "v2.0";
   const stubPrefix = options?.stubPrefix ?? "task";
   const dstId = `dst_${stubPrefix}_${randomUUID()}`;

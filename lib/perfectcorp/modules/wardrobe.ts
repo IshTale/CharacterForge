@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 
@@ -63,7 +64,7 @@ async function startVtoTask(
   module: "cloth" | "hat" | "bag" | "shoes",
   payload: Record<string, unknown>
 ): Promise<WardrobeTaskResult> {
-  const apiKey = process.env.PERFECTCORP_V2_API_KEY;
+  const apiKey = getV2ApiKey();
   const dstId = `dst_${module}_${randomUUID()}`;
 
   if (!apiKey) {

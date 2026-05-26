@@ -6,6 +6,7 @@ import React, { Fragment, useEffect, useState, type ReactNode } from "react";
 import FullBodyCanvas from "@/components/canvas/FullBodyCanvas";
 import HandWristCanvas from "@/components/canvas/HandWristCanvas";
 import HeadshotCanvas from "@/components/canvas/HeadshotCanvas";
+import { uploadRecipeCover } from "@/lib/api/recipe-cover-client";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
 import type { StudioSectionKey } from "@/types/canvas";
 import type { PublishedRecipe } from "@/types/recipe";
@@ -27,12 +28,15 @@ export default function StudioShell({ children }: StudioShellProps) {
   const canvases = useCharacterForgeStore((state) => state.canvases);
   const fileIds = useCharacterForgeStore((state) => state.fileIds);
   const recipe = useCharacterForgeStore((state) => state.recipe);
-  const updateRecipe = useCharacterForgeStore((state) => state.updateRecipe);
   const restoreSectionSnapshot = useCharacterForgeStore((state) => state.restoreSectionSnapshot);
   const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
   const loadPublishedRecipe = useCharacterForgeStore((state) => state.loadPublishedRecipe);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [publishTitle, setPublishTitle] = useState("");
+  const [publishImageFile, setPublishImageFile] = useState<File | null>(null);
+  const [publishImagePreview, setPublishImagePreview] = useState<string | null>(null);
   const [importedRecipeId, setImportedRecipeId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -82,11 +86,49 @@ export default function StudioShell({ children }: StudioShellProps) {
     void importRecipe();
   }, [importedRecipeId, loadPublishedRecipe]);
 
+  useEffect(() => {
+    if (!publishImageFile) {
+      setPublishImagePreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(publishImageFile);
+    setPublishImagePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [publishImageFile]);
+
+  const openPublishDialog = () => {
+    setPublishError(null);
+    setPublishTitle(recipe.title ?? "");
+    setPublishImageFile(null);
+    setPublishDialogOpen(true);
+  };
+
+  const closePublishDialog = () => {
+    if (publishing) {
+      return;
+    }
+    setPublishDialogOpen(false);
+    setPublishError(null);
+    setPublishImageFile(null);
+  };
+
   const handlePublish = async () => {
+    const trimmedTitle = publishTitle.trim();
+    if (!trimmedTitle) {
+      setPublishError("Enter a title before publishing.");
+      return;
+    }
+    if (!publishImageFile) {
+      setPublishError("Upload a recipe cover image before publishing.");
+      return;
+    }
+
     setPublishError(null);
     setPublishing(true);
     try {
-      await publishRecipe();
+      const displayImageUrl = await uploadRecipeCover(publishImageFile);
+      await publishRecipe({ title: trimmedTitle, displayImageUrl });
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : "Failed to publish recipe.");
       setPublishing(false);
@@ -114,19 +156,7 @@ export default function StudioShell({ children }: StudioShellProps) {
           <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
             Design Studio
           </h2>
-          <input
-            aria-label="Recipe title"
-            value={recipe.title ?? ""}
-            onChange={(event) => {
-              const title = event.target.value;
-              updateRecipe((current) => ({
-                ...current,
-                title: title.trim() ? title : undefined
-              }));
-            }}
-            placeholder="Untitled Recipe"
-            className="w-56 rounded border border-gray-800 bg-gray-950/70 px-3 py-1.5 text-center text-sm font-semibold text-white outline-none ring-white/20 placeholder:text-gray-600 focus:ring-2"
-          />
+          <p className="text-xs text-gray-600">Title and cover are set at publish.</p>
         </div>
 
         {/* Right Side: Next/Publish Button */}
@@ -160,7 +190,7 @@ export default function StudioShell({ children }: StudioShellProps) {
           ) : (
             <button
               type="button"
-              onClick={handlePublish}
+              onClick={openPublishDialog}
               disabled={publishing}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -169,6 +199,95 @@ export default function StudioShell({ children }: StudioShellProps) {
           )}
         </div>
       </header>
+
+      {publishDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="publish-recipe-title"
+            className="w-full max-w-lg rounded-xl border border-gray-800 bg-gray-950 p-6 shadow-2xl"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePublish();
+            }}
+          >
+            <h2 id="publish-recipe-title" className="text-lg font-semibold text-white">
+              Publish recipe
+            </h2>
+            <p className="mt-2 text-sm text-gray-400">
+              Add the community title and cover image that will appear on the recipe card.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <label className="block" htmlFor="publish-title">
+                <span className="text-sm font-medium text-gray-200">Recipe title</span>
+                <input
+                  id="publish-title"
+                  type="text"
+                  value={publishTitle}
+                  onChange={(event) => {
+                    setPublishTitle(event.target.value);
+                    setPublishError(null);
+                  }}
+                  placeholder="Untitled Recipe"
+                  disabled={publishing}
+                  className="mt-2 w-full rounded-md border border-gray-800 bg-black px-3 py-2 text-sm text-white outline-none ring-white/20 placeholder:text-gray-600 focus:ring-2 disabled:opacity-60"
+                />
+              </label>
+
+              <label
+                htmlFor="publish-cover-image"
+                className="block cursor-pointer rounded-lg border border-dashed border-gray-700 p-4 transition-colors hover:border-gray-500"
+              >
+                <span className="text-sm font-medium text-gray-200">Recipe cover image</span>
+                <input
+                  id="publish-cover-image"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  disabled={publishing}
+                  className="hidden"
+                  onChange={(event) => {
+                    setPublishImageFile(event.target.files?.[0] ?? null);
+                    setPublishError(null);
+                  }}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {publishImageFile?.name ?? "Upload a PNG or JPEG cover for the community card."}
+                </p>
+              </label>
+
+              {publishImagePreview && (
+                <img
+                  src={publishImagePreview}
+                  alt="Selected recipe cover preview"
+                  className="h-44 w-full rounded-lg border border-gray-800 object-cover"
+                />
+              )}
+            </div>
+
+            {publishError && <p className="mt-4 text-sm text-red-400">{publishError}</p>}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closePublishDialog}
+                disabled={publishing}
+                className="rounded-md border border-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={publishing}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {publishing ? "Publishing..." : "Publish recipe"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Top Horizontal Progress Stepper */}
       <div className="border-b border-gray-800 bg-gray-900/30 px-6 py-5">

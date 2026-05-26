@@ -1,4 +1,5 @@
 import { buildMakeupEffects } from "@/lib/makeup/build-effects";
+import { getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { extractPollErrorMessage } from "@/lib/perfectcorp/poll-errors";
 import { parseTaskResult } from "@/lib/perfectcorp/task-results";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
@@ -91,7 +92,7 @@ export interface MakeupApplyResult {
 export async function applyMakeup(payload: MakeupVtoTaskPayload): Promise<MakeupApplyResult> {
   validateEffects(payload.effects);
 
-  const apiKey = process.env.PERFECTCORP_V2_API_KEY;
+  const apiKey = getV2ApiKey();
   if (!apiKey) {
     return {
       task_id: null,

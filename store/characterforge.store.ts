@@ -22,6 +22,11 @@ import { createDefaultWardrobeConfig } from "@/types/wardrobe";
 import type { CanvasSlice } from "@/store/canvas.slice";
 import type { RecipeSlice } from "@/store/recipe.slice";
 
+export interface PublishRecipeInput {
+  title: string;
+  displayImageUrl: string;
+}
+
 const createEmptyCanvas = (): CanvasState => ({
   current_image_url: null,
   current_file_id: null,
@@ -119,16 +124,6 @@ function applySnapshotToCanvases(
   );
 }
 
-function selectDisplayImageUrl(canvases: Record<CanvasKey, CanvasState>) {
-  return (
-    canvases.headshot.current_image_url ??
-    canvases.fullbody.current_image_url ??
-    canvases.handwrist.current_image_url ??
-    canvases.feet.current_image_url ??
-    undefined
-  );
-}
-
 const defaultRecipe: Recipe = {
   schema_version: "1.0",
   created_at: new Date().toISOString(),
@@ -141,7 +136,7 @@ const defaultRecipe: Recipe = {
 
 export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
   triggerRender: (modules: string[]) => Promise<void>;
-  publishRecipe: () => Promise<string>;
+  publishRecipe: (input: PublishRecipeInput) => Promise<string>;
   loadPublishedRecipe: (recipe: Recipe) => void;
   resetStudio: () => void;
 }
@@ -503,11 +498,12 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
 
     get().clearDirty(modules);
   },
-  publishRecipe: async () => {
-    const displayImageUrl = selectDisplayImageUrl(get().canvases);
+  publishRecipe: async ({ title, displayImageUrl }) => {
+    const trimmedTitle = title.trim();
     const publishPayload = prepareRecipeForPublish({
       ...get().recipe,
-      display_image_url: displayImageUrl ?? get().recipe.display_image_url
+      title: trimmedTitle,
+      display_image_url: displayImageUrl
     });
     const response = await fetch("/api/recipes", {
       method: "POST",
@@ -527,7 +523,8 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       recipe: {
         ...state.recipe,
         recipe_id: recipeId,
-        display_image_url: displayImageUrl ?? state.recipe.display_image_url
+        title: trimmedTitle,
+        display_image_url: displayImageUrl
       }
     }));
     if (typeof window !== "undefined") {
