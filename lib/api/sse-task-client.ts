@@ -230,6 +230,7 @@ export async function uploadModuleFile(
   try {
     return JSON.parse(responseText) as { file_id: string; public_url?: string };
   } catch (parseError) {
+    const rawFileId = responseText.trim();
     // #region agent log
     agentUploadDebugLog(
       "H1,H4",
@@ -247,6 +248,23 @@ export async function uploadModuleFile(
       }
     );
     // #endregion
+    if (rawFileId && !responseText.trimStart().startsWith("<")) {
+      // #region agent log
+      agentUploadDebugLog(
+        "H8",
+        "lib/api/sse-task-client.ts:uploadModuleFile:raw-file-id-fallback",
+        "Client recovered upload response as raw file id",
+        {
+          module,
+          status: response.status,
+          contentType: responseContentType,
+          bodyLength: responseText.length,
+          firstChar: responseText[0] ?? null
+        }
+      );
+      // #endregion
+      return { file_id: rawFileId };
+    }
     throw parseError;
   }
 }
