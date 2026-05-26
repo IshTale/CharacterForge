@@ -26,6 +26,8 @@ export default function StudioShell({ children }: StudioShellProps) {
   const pathname = usePathname();
   const canvases = useCharacterForgeStore((state) => state.canvases);
   const fileIds = useCharacterForgeStore((state) => state.fileIds);
+  const recipe = useCharacterForgeStore((state) => state.recipe);
+  const updateRecipe = useCharacterForgeStore((state) => state.updateRecipe);
   const restoreSectionSnapshot = useCharacterForgeStore((state) => state.restoreSectionSnapshot);
   const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
   const loadPublishedRecipe = useCharacterForgeStore((state) => state.loadPublishedRecipe);
@@ -61,14 +63,8 @@ export default function StudioShell({ children }: StudioShellProps) {
 
     const importRecipe = async () => {
       setImportError(null);
-      // #region agent log
-      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'components/studio/StudioShell.tsx:importRecipe:start',message:'Client studio import started from recipe query',data:{recipeId,path:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       try {
         const response = await fetch(`/api/recipes/${recipeId}`, { cache: "no-store" });
-        // #region agent log
-        void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'components/studio/StudioShell.tsx:importRecipe:response',message:'Client studio import fetch completed',data:{recipeId,status:response.status,ok:response.ok},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         const payload = (await response.json().catch(() => ({}))) as {
           data?: PublishedRecipe;
           error?: string;
@@ -114,7 +110,24 @@ export default function StudioShell({ children }: StudioShellProps) {
         </div>
 
         {/* Center: Title */}
-        <h2 className="text-xl font-semibold text-white">Design Studio</h2>
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+            Design Studio
+          </h2>
+          <input
+            aria-label="Recipe title"
+            value={recipe.title ?? ""}
+            onChange={(event) => {
+              const title = event.target.value;
+              updateRecipe((current) => ({
+                ...current,
+                title: title.trim() ? title : undefined
+              }));
+            }}
+            placeholder="Untitled Recipe"
+            className="w-56 rounded border border-gray-800 bg-gray-950/70 px-3 py-1.5 text-center text-sm font-semibold text-white outline-none ring-white/20 placeholder:text-gray-600 focus:ring-2"
+          />
+        </div>
 
         {/* Right Side: Next/Publish Button */}
         <div className="flex flex-1 items-center justify-end gap-3">

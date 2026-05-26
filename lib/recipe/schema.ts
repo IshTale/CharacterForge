@@ -280,6 +280,9 @@ export function validateRecipeSchema(recipe: unknown): Recipe {
   if (typeof recipe.title === "string") {
     output.title = recipe.title;
   }
+  if (typeof recipe.display_image_url === "string") {
+    output.display_image_url = recipe.display_image_url;
+  }
 
   return output;
 }

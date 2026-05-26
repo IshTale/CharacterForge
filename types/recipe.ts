@@ -93,6 +93,7 @@ export interface Recipe {
   schema_version: "1.0";
   created_at: string;
   title?: string;
+  display_image_url?: string;
   wardrobe: WardrobeConfig;
   makeup: MakeupConfig;
   hair: HairConfig;
@@ -109,4 +110,5 @@ export interface RecipeListItem {
   schema_version: "1.0";
   created_at: string;
   title?: string;
+  display_image_url?: string;
 }

@@ -80,7 +80,7 @@ All studio state is owned by `useCharacterForgeStore` in `store/characterforge.s
 It combines the canvas slice and recipe slice:
 
 - `recipe` is the portable character definition. It has `schema_version`, `created_at`,
-  `wardrobe`, `makeup`, `hair`, `nails`, and `jewelry`.
+  `title`, `display_image_url`, `wardrobe`, `makeup`, `hair`, `nails`, and `jewelry`.
 - `canvases` tracks render state for `headshot`, `fullbody`, `handwrist`, and `feet`:
   current image URL, current file id, task history, and status.
 - `basePhotos` keeps the user's local `File` objects. These are client-only.
@@ -157,10 +157,10 @@ CharacterForge intentionally separates private user photos from reusable design 
 
 Recipes are persisted by `lib/recipe/repository.ts` through `RedisCache`:
 
-- Primary key: `recipes:all`
-- Value: JSON array of published recipe documents
+- Index key: `recipes:index`
+- Per-recipe key: `recipe:{recipe_id}`
 - Server-assigned id: `recipe_id = randomUUID()`
-- Local fallback: `.data/recipes.json` when Redis is not configured
+- Local fallback: `.data/recipes/index.json` plus one JSON document per recipe when Redis is not configured
 
 `GET /api/recipes` returns `RecipeListItem` summaries only. Full module configuration is returned
 by `GET /api/recipes/[recipe_id]`.
@@ -189,8 +189,8 @@ Serialization is intentionally strict:
 - `extractRecipeForReplay()` returns a full schema-valid `PublishedRecipe`.
 - List extraction uses `toRecipeListItems()` to avoid leaking module payloads into the dashboard.
 
-A published recipe stores portable choices and reusable references, not the creator's local base
-photos or final body/face composites.
+A published recipe stores portable choices, reusable references, and a display picture. The
+creator's local base photos are still kept out of recipe storage.
 
 ## Validation
 

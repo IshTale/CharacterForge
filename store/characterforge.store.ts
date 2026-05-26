@@ -119,6 +119,16 @@ function applySnapshotToCanvases(
   );
 }
 
+function selectDisplayImageUrl(canvases: Record<CanvasKey, CanvasState>) {
+  return (
+    canvases.headshot.current_image_url ??
+    canvases.fullbody.current_image_url ??
+    canvases.handwrist.current_image_url ??
+    canvases.feet.current_image_url ??
+    undefined
+  );
+}
+
 const defaultRecipe: Recipe = {
   schema_version: "1.0",
   created_at: new Date().toISOString(),
@@ -494,18 +504,16 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     get().clearDirty(modules);
   },
   publishRecipe: async () => {
-    const publishPayload = prepareRecipeForPublish(get().recipe);
-    // #region agent log
-    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3,H4',location:'store/characterforge.store.ts:publishRecipe:start',message:'Client publish started',data:{hasExistingRecipeId:Boolean(get().recipe.recipe_id),payloadCreatedAt:publishPayload.created_at,dirtyModules:[...get().dirtyModules],hasWindow:typeof window!=='undefined'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+    const displayImageUrl = selectDisplayImageUrl(get().canvases);
+    const publishPayload = prepareRecipeForPublish({
+      ...get().recipe,
+      display_image_url: displayImageUrl ?? get().recipe.display_image_url
+    });
     const response = await fetch("/api/recipes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(publishPayload)
     });
-    // #region agent log
-    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3',location:'store/characterforge.store.ts:publishRecipe:response',message:'Client publish response received',data:{status:response.status,ok:response.ok},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!response.ok) {
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(payload.error ?? "Failed to publish recipe.");
@@ -518,21 +526,16 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
     set((state) => ({
       recipe: {
         ...state.recipe,
-        recipe_id: recipeId
+        recipe_id: recipeId,
+        display_image_url: displayImageUrl ?? state.recipe.display_image_url
       }
     }));
     if (typeof window !== "undefined") {
-      // #region agent log
-      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H3,H4',location:'store/characterforge.store.ts:publishRecipe:redirect',message:'Client publish parsed id and redirecting',data:{recipeId,redirectTo:'/'},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       window.location.assign("/");
     }
     return recipeId;
   },
   loadPublishedRecipe: (recipe) => {
-    // #region agent log
-    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'store/characterforge.store.ts:loadPublishedRecipe',message:'Client store applying published recipe',data:{recipeId:recipe.recipe_id??null,createdAt:recipe.created_at,hasWardrobe:Boolean(recipe.wardrobe),hasMakeup:Boolean(recipe.makeup),hasHair:Boolean(recipe.hair),hasJewelry:Boolean(recipe.jewelry)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     set({
       recipe,
       dirtyModules: new Set(),

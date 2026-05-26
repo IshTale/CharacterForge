@@ -42,7 +42,11 @@ function RecipeList({ recipes }: { recipes: RecipeListItem[] }) {
     <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
       {recipes.map((recipe) => (
         <Link key={recipe.recipe_id} href={`/recipes/${recipe.recipe_id}`}>
-          <RecipeCard title={recipe.title ?? "Untitled Recipe"} author="CharacterForge User" />
+          <RecipeCard
+            title={recipe.title ?? "Untitled Recipe"}
+            author="CharacterForge User"
+            displayImageUrl={recipe.display_image_url}
+          />
         </Link>
       ))}
     </div>

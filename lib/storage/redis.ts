@@ -1,6 +1,6 @@
 import { Redis as UpstashRedis } from "@upstash/redis";
 import { createClient } from "redis";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Recipe } from "@/types/recipe";
 
@@ -9,41 +9,22 @@ type RecipeRecord = Recipe & { recipe_id: string };
 interface RedisStore {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, options?: { ttlSeconds?: number }): Promise<void>;
+  del(key: string): Promise<void>;
 }
 
 const RECIPE_FALLBACK_FILE = path.join(process.cwd(), ".data", "recipes.json");
+const RECIPE_FALLBACK_DIR = path.join(process.cwd(), ".data", "recipes");
+const RECIPE_FALLBACK_INDEX_FILE = path.join(RECIPE_FALLBACK_DIR, "index.json");
+const LEGACY_RECIPES_KEY = "recipes:all";
+const RECIPE_INDEX_KEY = "recipes:index";
+const RECIPE_KEY_PREFIX = "recipe:";
 
-function agentDebugLog(payload: {
-  hypothesisId: string;
-  location: string;
-  message: string;
-  data: Record<string, unknown>;
-}) {
-  const entry = {
-    sessionId: "270c40",
-    runId: "prod-replay",
-    ...payload,
-    timestamp: Date.now()
-  };
-  void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify(entry)}).catch(()=>{});
-  console.log("[agent-debug]", JSON.stringify(entry));
+function recipeKey(recipeId: string) {
+  return `${RECIPE_KEY_PREFIX}${recipeId}`;
 }
 
-function classifyUrlScheme(value: string | null) {
-  if (!value) return null;
-  try {
-    return new URL(value).protocol.replace(":", "");
-  } catch {
-    return "invalid";
-  }
-}
-
-function errorShape(error: unknown) {
-  const details = error as { name?: unknown; code?: unknown };
-  return {
-    name: typeof details.name === "string" ? details.name : "Error",
-    code: typeof details.code === "string" ? details.code : null
-  };
+function fallbackRecipeFile(recipeId: string) {
+  return path.join(RECIPE_FALLBACK_DIR, `${recipeId}.json`);
 }
 
 function encodeValue(value: unknown) {
@@ -89,6 +70,9 @@ async function createRedisUrlStore(url: string): Promise<RedisStore> {
       } else {
         await client.set(key, value);
       }
+    },
+    del: async (key) => {
+      await client.del(key);
     }
   };
 }
@@ -106,25 +90,15 @@ function createUpstashStore(config: { url: string; token: string }): RedisStore 
       } else {
         await redis.set(key, value);
       }
+    },
+    del: async (key) => {
+      await redis.del(key);
     }
   };
 }
 
 async function createStore(): Promise<RedisStore | null> {
   const directUrl = redisUrl();
-  // #region agent log
-  agentDebugLog({
-    hypothesisId: "P1,P2",
-    location: "lib/storage/redis.ts:createStore",
-    message: "Storage createStore evaluated Redis env",
-    data: {
-      hasKvRestRedisUrl: Boolean(directUrl),
-      kvRestRedisUrlScheme: classifyUrlScheme(directUrl),
-      hasUpstashRestUrl: Boolean(process.env.UPSTASH_REDIS_REST_URL?.trim()),
-      hasUpstashRestToken: Boolean(process.env.UPSTASH_REDIS_REST_TOKEN?.trim())
-    }
-  });
-  // #endregion
   if (directUrl) {
     return createRedisUrlStore(directUrl);
   }
@@ -145,14 +119,6 @@ export class RedisCache {
   private async store() {
     RedisCache.storePromise ??= createStore().catch((error) => {
       console.error("[redis] connection failed", error);
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "P1,P2",
-        location: "lib/storage/redis.ts:store:connectionFailed",
-        message: "Storage Redis connection failed",
-        data: errorShape(error)
-      });
-      // #endregion
       RedisCache.storePromise = null;
       return null;
     });
@@ -160,6 +126,30 @@ export class RedisCache {
   }
 
   private async readRecipeFallback() {
+    try {
+      const rawIndex = await readFile(RECIPE_FALLBACK_INDEX_FILE, "utf8");
+      const recipeIds = JSON.parse(rawIndex);
+      if (Array.isArray(recipeIds)) {
+        const records = await Promise.all(
+          recipeIds.map(async (recipeId) => {
+            if (typeof recipeId !== "string") return null;
+            try {
+              const rawRecipe = await readFile(fallbackRecipeFile(recipeId), "utf8");
+              return JSON.parse(rawRecipe) as RecipeRecord;
+            } catch {
+              return null;
+            }
+          })
+        );
+        RedisCache.recipeFallback = records.filter(
+          (recipe): recipe is RecipeRecord => Boolean(recipe?.recipe_id)
+        );
+        return RedisCache.recipeFallback;
+      }
+    } catch {
+      // Fall through to the legacy single-file fallback below.
+    }
+
     try {
       const raw = await readFile(RECIPE_FALLBACK_FILE, "utf8");
       const parsed = JSON.parse(raw);
@@ -174,8 +164,23 @@ export class RedisCache {
 
   private async writeRecipeFallback(recipes: RecipeRecord[]) {
     RedisCache.recipeFallback = recipes;
-    await mkdir(path.dirname(RECIPE_FALLBACK_FILE), { recursive: true });
-    await writeFile(RECIPE_FALLBACK_FILE, JSON.stringify(recipes, null, 2));
+    await mkdir(RECIPE_FALLBACK_DIR, { recursive: true });
+    const recipeIds = recipes.map((recipe) => recipe.recipe_id);
+    const previousEntries = await readdir(RECIPE_FALLBACK_DIR).catch(() => []);
+
+    await Promise.all(
+      recipes.map((recipe) =>
+        writeFile(fallbackRecipeFile(recipe.recipe_id), JSON.stringify(recipe, null, 2))
+      )
+    );
+    await writeFile(RECIPE_FALLBACK_INDEX_FILE, JSON.stringify(recipeIds, null, 2));
+
+    await Promise.all(
+      previousEntries
+        .filter((entry) => entry.endsWith(".json") && entry !== "index.json")
+        .filter((entry) => !recipeIds.includes(path.basename(entry, ".json")))
+        .map((entry) => unlink(path.join(RECIPE_FALLBACK_DIR, entry)).catch(() => undefined))
+    );
   }
 
   private async safeGet<T>(key: string): Promise<T | null> {
@@ -183,15 +188,7 @@ export class RedisCache {
       const store = await this.store();
       if (!store) return null;
       return decodeValue<T>(await store.get(key));
-    } catch (error) {
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "P1,P3",
-        location: "lib/storage/redis.ts:safeGet",
-        message: "Storage Redis get failed",
-        data: { key, ...errorShape(error) }
-      });
-      // #endregion
+    } catch {
       return null;
     }
   }
@@ -206,15 +203,19 @@ export class RedisCache {
       if (!store) return false;
       await store.set(key, encodeValue(value), { ttlSeconds: opts?.ex });
       return true;
-    } catch (error) {
-      // #region agent log
-      agentDebugLog({
-        hypothesisId: "P1,P3",
-        location: "lib/storage/redis.ts:safeSet",
-        message: "Storage Redis set failed",
-        data: { key, ...errorShape(error) }
-      });
-      // #endregion
+    } catch {
+      return false;
+    }
+  }
+
+  private async safeDelete(key: string): Promise<boolean> {
+    try {
+      const store = await this.store();
+      RedisCache.memory.delete(key);
+      if (!store) return false;
+      await store.del(key);
+      return true;
+    } catch {
       return false;
     }
   }
@@ -254,55 +255,37 @@ export class RedisCache {
   }
 
   async listRecipes() {
-    const persisted = await this.safeGet<RecipeRecord[]>("recipes:all");
-    if (persisted) {
-      // #region agent log
-      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:persisted',message:'Storage listed recipes from persisted store',data:{source:'persisted',count:persisted.length,recipeIds:persisted.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
-      agentDebugLog({
-        hypothesisId: "P1,P2,P3",
-        location: "lib/storage/redis.ts:listRecipes:persisted",
-        message: "Storage listed recipes from persisted store",
-        data: {
-          source: "persisted",
-          count: persisted.length,
-          recipeIds: persisted.slice(-5).map((recipe) => recipe.recipe_id)
-        }
-      });
-      // #endregion
-      return persisted;
+    const recipeIds = await this.safeGet<string[]>(RECIPE_INDEX_KEY);
+    if (recipeIds) {
+      const records = await Promise.all(
+        recipeIds.map((recipeId) => this.safeGet<RecipeRecord>(recipeKey(recipeId)))
+      );
+      return records.filter((recipe): recipe is RecipeRecord => Boolean(recipe?.recipe_id));
     }
-    const fallback = await this.readRecipeFallback();
-    // #region agent log
-    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:fallback',message:'Storage listed recipes from fallback store',data:{source:'fallback',count:fallback.length,recipeIds:fallback.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
-    agentDebugLog({
-      hypothesisId: "P1,P2,P3",
-      location: "lib/storage/redis.ts:listRecipes:fallback",
-      message: "Storage listed recipes from fallback store",
-      data: {
-        source: "fallback",
-        count: fallback.length,
-        recipeIds: fallback.slice(-5).map((recipe) => recipe.recipe_id)
-      }
-    });
-    // #endregion
-    return fallback;
+
+    const legacyPersisted = await this.safeGet<RecipeRecord[]>(LEGACY_RECIPES_KEY);
+    if (legacyPersisted) return legacyPersisted;
+
+    return this.readRecipeFallback();
   }
 
   async saveRecipes(recipes: RecipeRecord[]) {
-    const persisted = await this.safeSet("recipes:all", recipes);
-    if (!persisted) await this.writeRecipeFallback(recipes);
-    // #region agent log
-    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:saveRecipes',message:'Storage saved recipes',data:{source:persisted?'persisted':'fallback',count:recipes.length,recipeIds:recipes.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
-    agentDebugLog({
-      hypothesisId: "P1,P2,P3",
-      location: "lib/storage/redis.ts:saveRecipes",
-      message: "Storage saved recipes",
-      data: {
-        source: persisted ? "persisted" : "fallback",
-        count: recipes.length,
-        recipeIds: recipes.slice(-5).map((recipe) => recipe.recipe_id)
-      }
-    });
-    // #endregion
+    const previousRecipeIds = (await this.safeGet<string[]>(RECIPE_INDEX_KEY)) ?? [];
+    const recipeIds = recipes.map((recipe) => recipe.recipe_id);
+    const persistedRecords = await Promise.all(
+      recipes.map((recipe) => this.safeSet(recipeKey(recipe.recipe_id), recipe))
+    );
+    const persistedIndex = await this.safeSet(RECIPE_INDEX_KEY, recipeIds);
+
+    if (persistedIndex && persistedRecords.every(Boolean)) {
+      await Promise.all(
+        previousRecipeIds
+          .filter((recipeId) => !recipeIds.includes(recipeId))
+          .map((recipeId) => this.safeDelete(recipeKey(recipeId)))
+      );
+      return;
+    }
+
+    await this.writeRecipeFallback(recipes);
   }
 }

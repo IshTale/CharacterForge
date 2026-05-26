@@ -5,6 +5,7 @@ import { serialiseRecipe } from "@/lib/recipe/serializer";
 const LIST_ITEM_KEYS: (keyof RecipeListItem)[] = [
   "recipe_id",
   "title",
+  "display_image_url",
   "created_at",
   "schema_version"
 ];
@@ -35,6 +36,7 @@ export function toRecipeListItem(
   return {
     recipe_id: record.recipe_id,
     title: record.title,
+    display_image_url: record.display_image_url,
     created_at: record.created_at,
     schema_version: record.schema_version
   };
@@ -61,6 +63,6 @@ export function isRecipeListItem(value: unknown): value is RecipeListItem {
     typeof row.recipe_id === "string" &&
     typeof row.created_at === "string" &&
     row.schema_version === "1.0" &&
-    LIST_ITEM_KEYS.every((key) => key in row)
+    LIST_ITEM_KEYS.every((key) => key in row || key === "title" || key === "display_image_url")
   );
 }
