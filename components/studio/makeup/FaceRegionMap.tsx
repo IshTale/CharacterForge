@@ -56,24 +56,24 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
     if (isArea) {
       return {
         stroke: "none",
-        fill: "white",
+        fill: "#f04aa7",
         className: "transition-all duration-300",
         style: {
-          opacity: isSelected ? 0.3 : 0.15,
-          filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8)) blur(4px)",
+          opacity: isSelected ? 0.36 : 0.18,
+          filter: "drop-shadow(0 0 10px rgba(240,74,167,0.85)) blur(4px)",
         },
       };
     }
 
     return {
-      stroke: "white",
+      stroke: "#db1f85",
       strokeWidth: isSelected ? "4" : "2.5",
       fill: "none",
       strokeLinecap: "round" as const,
       className: "transition-all duration-300",
       style: {
         opacity: isSelected ? 1 : 0.7,
-        filter: isSelected ? "drop-shadow(0 0 6px white)" : "drop-shadow(0 0 4px rgba(255,255,255,0.6))",
+        filter: isSelected ? "drop-shadow(0 0 7px #f04aa7)" : "drop-shadow(0 0 5px rgba(240,74,167,0.65))",
       },
     };
   };
@@ -84,13 +84,13 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
     : REGION_BUTTONS.find((r) => r.id === selectedRegion)?.label;
 
   return (
-    <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-4 shadow-xl">
+    <div className="beauty-card p-4">
       {/* Dynamic Header */}
       <div className="mb-4 h-6 text-center">
         {activeLabel ? (
-          <p className="text-sm font-bold tracking-widest text-white uppercase">{activeLabel}</p>
+          <p className="text-sm font-bold tracking-widest text-magenta-600 uppercase">{activeLabel}</p>
         ) : (
-          <p className="text-sm font-medium text-gray-500">Select a region to edit</p>
+          <p className="text-sm font-medium text-plum-700/60">Select a region to edit</p>
         )}
       </div>
 
@@ -104,8 +104,8 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
           {/* Base Face Shape */}
           <path
             d="M170 30 C70 30 20 120 20 220 C20,340 80,440 170,440 C260,440 320,340 320,220 C320,120 270,30 170,30Z"
-            fill="#1f2937"
-            stroke="#374151"
+            fill="#f3fdff"
+            stroke="#9fe9ed"
             strokeWidth="2.5"
           />
 
@@ -145,15 +145,15 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
           {/* ================= BASE FACIAL FEATURES ================= */}
 
           {/* Eyebrows */}
-          <path d="M 90 160 Q 115 145 140 160" stroke="#4b5563" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M 90 160 Q 115 145 140 160" stroke="#5a2448" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 90 160 Q 115 145 140 160" {...getHighlightProps("eyebrows")} />
 
-          <path d="M 250 160 Q 225 145 200 160" stroke="#4b5563" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M 250 160 Q 225 145 200 160" stroke="#5a2448" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 250 160 Q 225 145 200 160" {...getHighlightProps("eyebrows")} />
 
           {/* Eyes Base */}
-          <ellipse cx="115" cy="190" rx="18" ry="9" fill="#1c2533" stroke="#4b5563" strokeWidth="1.2" />
-          <ellipse cx="225" cy="190" rx="18" ry="9" fill="#1c2533" stroke="#4b5563" strokeWidth="1.2" />
+          <ellipse cx="115" cy="190" rx="18" ry="9" fill="#fff8fa" stroke="#5a2448" strokeWidth="1.2" />
+          <ellipse cx="225" cy="190" rx="18" ry="9" fill="#fff8fa" stroke="#5a2448" strokeWidth="1.2" />
 
           {/* Eye Liner (Upper Lash Line) */}
           <path d="M 97 182 Q 115 178 133 182" {...getHighlightProps("eye_liner")} />
@@ -164,20 +164,20 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
           <path d="M 243 198 Q 225 202 207 198" {...getHighlightProps("eyelashes")} />
 
           {/* Nose */}
-          <path d="M 170 190 L 170 275 Q 182 285 170 290 Q 158 285 170 275" stroke="#374151" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+          <path d="M 170 190 L 170 275 Q 182 285 170 290 Q 158 285 170 275" stroke="#9fe9ed" strokeWidth="1.8" fill="none" strokeLinecap="round" />
 
           {/* Lips Base */}
-          <path d="M 125 350 Q 170 335 215 350 Q 170 375 125 350 Z" fill="#1c2533" stroke="#4b5563" strokeWidth="1.2" />
+          <path d="M 125 350 Q 170 335 215 350 Q 170 375 125 350 Z" fill="#f04aa7" stroke="#b9146c" strokeWidth="1.2" />
 
           {/* Lip Color Highlight */}
           <path d="M 125 350 Q 170 335 215 350 Q 170 375 125 350 Z" {...getHighlightProps("lip_color", true)} />
 
           {/* Lip Liner Highlight */}
           <path d="M 125 350 Q 170 335 215 350 Q 170 375 125 350 Z" {...getHighlightProps("lip_liner")} />
-          <path d="M 125 350 Q 170 355 215 350" stroke="#4b5563" strokeWidth="1.2" fill="none" />
+          <path d="M 125 350 Q 170 355 215 350" stroke="#b9146c" strokeWidth="1.2" fill="none" />
 
           {/* Neck */}
-          <path d="M 115 430 L 115 480 L 225 480 L 225 430" fill="#1f2937" stroke="#374151" strokeWidth="2.5" />
+          <path d="M 115 430 L 115 480 L 225 480 L 225 430" fill="#f3fdff" stroke="#9fe9ed" strokeWidth="2.5" />
         </svg>
 
         {/* Minimalist Hover Dots */}
@@ -196,8 +196,8 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
               aria-label={button.label}
             >
               <div className={`h-2.5 w-2.5 rounded-full border-2 transition-all duration-300 ${isSelected
-                  ? "border-white bg-white shadow-[0_0_10px_rgba(255,255,255,1)] scale-125"
-                  : "border-gray-500 bg-gray-900 group-hover:border-white group-hover:bg-white group-hover:shadow-[0_0_8px_rgba(255,255,255,0.7)] group-hover:scale-110"
+                  ? "border-white bg-magenta-500 shadow-[0_0_12px_rgba(240,74,167,0.95)] scale-125"
+                  : "border-mint-300 bg-white group-hover:border-magenta-400 group-hover:bg-magenta-400 group-hover:shadow-[0_0_10px_rgba(240,74,167,0.7)] group-hover:scale-110"
                 }`} />
             </button>
           );

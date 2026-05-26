@@ -126,13 +126,15 @@ export default function HairPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-semibold">Hair Styling</h1>
-      <p className="text-sm text-gray-400">
+      <h1 className="text-2xl font-semibold text-plum-900">Hair Styling</h1>
+      <p className="max-w-2xl text-sm text-plum-700/70">
         Pick a hairstyle template or upload a reference photo, then apply to your headshot.
       </p>
 
-      <section className="rounded border border-gray-700 p-3">
-        <p className="mb-2 text-xs font-medium text-gray-400">Selection progress</p>
+      <section className="beauty-panel p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-magenta-600">
+          Selection progress
+        </p>
         <HairPipelinePreview hair={hair} />
       </section>
 
@@ -140,7 +142,7 @@ export default function HairPage() {
         <div className="space-y-4">
           {templateCategories.length > 1 && (
             <div>
-              <p className="mb-2 text-xs text-gray-400">Category</p>
+              <p className="mb-2 text-xs font-medium text-plum-700/70">Category</p>
               <ColorCategoryFilter
                 categories={templateCategories}
                 selected={categoryFilter}
@@ -150,7 +152,7 @@ export default function HairPage() {
           )}
 
           <div>
-            <p className="mb-2 text-xs text-gray-400">Templates</p>
+            <p className="mb-2 text-xs font-medium text-plum-700/70">Templates</p>
             {(error || uploadError) && (
               <p className="mb-2 text-xs text-red-400">{error ?? uploadError}</p>
             )}
@@ -167,36 +169,36 @@ export default function HairPage() {
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="rounded border border-gray-600 px-3 py-1.5 text-xs text-gray-200 hover:border-gray-500 disabled:opacity-60"
+              className="beauty-secondary px-3 py-1.5 text-xs"
             >
               {loadingMore ? "Loading more…" : "Load more templates"}
             </button>
           )}
 
-          <div className="space-y-2 border-t border-gray-800 pt-4">
-            <p className="text-xs text-gray-400">Custom reference</p>
+          <div className="space-y-2 border-t border-mint-200 pt-4">
+            <p className="text-xs font-medium text-plum-700/70">Custom reference</p>
             <PhotoUploader
               label="Upload hairstyle reference (JPG/PNG, max 5MB)"
               onChange={handleReferenceUpload}
             />
-            {uploadBusy && <p className="text-xs text-gray-500">Uploading reference…</p>}
+            {uploadBusy && <p className="text-xs text-plum-700/60">Uploading reference…</p>}
           </div>
 
           {(referencePreview || hair.transfer?.mode === "template") && (
-            <div className="flex items-center justify-between rounded border border-gray-800 px-3 py-2 text-xs text-gray-400">
+            <div className="flex items-center justify-between rounded-xl border border-mint-200 bg-mint-50/50 px-3 py-2 text-xs text-plum-700/70">
               <span>
                 {hair.transfer?.mode === "template"
                   ? `Template: ${hair.transfer.title}`
                   : `Reference: ${hair.transfer?.title}`}
               </span>
-              <button type="button" onClick={clearTransfer} className="hover:text-white">
+              <button type="button" onClick={clearTransfer} className="font-medium text-magenta-600 hover:text-magenta-500">
                 Clear
               </button>
             </div>
           )}
 
           {referencePreview && (
-            <div className="relative mx-auto aspect-[3/4] max-h-48 w-32 overflow-hidden rounded border border-gray-700">
+            <div className="relative mx-auto aspect-[3/4] max-h-48 w-32 overflow-hidden rounded-xl border border-mint-200 shadow-lg shadow-mint-500/10">
               <Image
                 src={referencePreview}
                 alt="Hairstyle reference"
@@ -216,7 +218,7 @@ export default function HairPage() {
         type="button"
         onClick={handleApply}
         disabled={applying || !hairHasSelection(hair)}
-        className="rounded bg-white px-4 py-2 text-black disabled:opacity-60"
+        className="beauty-primary"
       >
         {applying ? "Applying…" : "Apply Hairstyle"}
       </button>

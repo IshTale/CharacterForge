@@ -58,22 +58,22 @@ export default function JewelrySlotPanel({
   };
 
   return (
-    <section className="rounded-xl border border-gray-700 bg-gray-900/40 p-4 shadow-lg">
+    <section className="beauty-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">{definition.title}</h2>
-          <p className="mt-1 text-xs text-gray-400">{definition.subtitle}</p>
+          <h2 className="text-lg font-semibold text-plum-900">{definition.title}</h2>
+          <p className="mt-1 text-xs text-plum-700/70">{definition.subtitle}</p>
         </div>
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-            isReady ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-800 text-gray-500"
+            isReady ? "bg-mint-200 text-mint-500" : "bg-mint-100 text-plum-700/60"
           }`}
         >
           {busy ? "Uploading..." : isReady ? "Ready" : "Empty"}
         </span>
       </div>
 
-      <p className="mt-3 text-xs text-gray-500">JPG or PNG, max 5MB, 1024x1024 recommended</p>
+      <p className="mt-3 text-xs text-plum-700/60">JPG or PNG, max 5MB, 1024x1024 recommended</p>
 
       <div className="mt-4">
         <PhotoUploader
@@ -85,7 +85,7 @@ export default function JewelrySlotPanel({
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
       {refImageUrl && (
-        <div className="mt-4 overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
+        <div className="mt-4 overflow-hidden rounded-xl border border-mint-200 bg-white/70 shadow-lg shadow-mint-500/10">
           <div className="relative aspect-square w-full">
             <Image
               src={refImageUrl}
@@ -96,13 +96,13 @@ export default function JewelrySlotPanel({
               unoptimized
             />
           </div>
-          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-400">
+          <div className="flex items-center justify-between px-3 py-2 text-xs text-plum-700/70">
             <span>upload source</span>
             <button
               type="button"
               onClick={clearSlot}
               disabled={busy}
-              className="text-gray-300 hover:text-white disabled:opacity-50"
+              className="font-medium text-magenta-600 hover:text-magenta-500 disabled:opacity-50"
             >
               Clear
             </button>

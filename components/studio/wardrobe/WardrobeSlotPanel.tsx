@@ -96,17 +96,19 @@ export default function WardrobeSlotPanel({
   };
 
   return (
-    <section className="rounded-xl border border-gray-700 bg-gray-900/40 p-4 shadow-lg">
+    <section className="beauty-card p-4">
       <SlotHeader title={definition.title} subtitle={definition.subtitle} ready={isReady} />
 
-      <div className="mt-4 inline-flex rounded-lg border border-gray-700 p-1">
+      <div className="mt-4 inline-flex rounded-xl border border-mint-300 bg-mint-100/40 p-1">
         {(["generate", "upload"] as const).map((mode) => (
           <button
             key={mode}
             type="button"
             onClick={() => setMode(mode)}
             className={`rounded-md px-4 py-1.5 text-xs font-medium capitalize transition ${
-              activeMode === mode ? "bg-white text-black" : "text-gray-400 hover:text-gray-200"
+              activeMode === mode
+                ? "bg-magenta-500 text-white shadow-sm"
+                : "text-plum-700/60 hover:text-plum-900"
             }`}
           >
             {mode}
@@ -117,19 +119,19 @@ export default function WardrobeSlotPanel({
       <div className="mt-4 space-y-3">
         {activeMode === "generate" ? (
           <div className="space-y-3">
-            <label className="block text-xs text-gray-400">Describe the item</label>
+            <label className="block text-xs font-medium text-plum-700/70">Describe the item</label>
             <textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               placeholder={definition.placeholder}
               rows={3}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950/60 px-3 py-2 text-sm text-gray-100 outline-none ring-white/20 focus:ring-2"
+              className="beauty-input w-full"
             />
             <button
               type="button"
               onClick={handleGenerate}
               disabled={busy}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-60"
+              className="beauty-primary"
             >
               {busy ? "Generating…" : "Generate item"}
             </button>
@@ -144,7 +146,7 @@ export default function WardrobeSlotPanel({
         {error && <p className="text-xs text-red-400">{error}</p>}
 
         {preview && (
-          <div className="overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
+          <div className="overflow-hidden rounded-xl border border-mint-200 bg-white/70 shadow-lg shadow-mint-500/10">
             <div className="relative aspect-square w-full">
               <Image
                 src={preview}
@@ -175,12 +177,12 @@ function SlotHeader({
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="mt-1 text-xs text-gray-400">{subtitle}</p>
+        <h2 className="text-lg font-semibold text-plum-900">{title}</h2>
+        <p className="mt-1 text-xs text-plum-700/70">{subtitle}</p>
       </div>
       <span
         className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-          ready ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-800 text-gray-500"
+          ready ? "bg-mint-200 text-mint-500" : "bg-mint-100 text-plum-700/60"
         }`}
       >
         {ready ? "Ready" : "Empty"}
@@ -197,9 +199,9 @@ function PreviewFooter({
   onClear: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-400">
+    <div className="flex items-center justify-between px-3 py-2 text-xs text-plum-700/70">
       <span className="capitalize">{source ?? "unset"} source</span>
-      <button type="button" onClick={onClear} className="text-gray-300 hover:text-white">
+      <button type="button" onClick={onClear} className="font-medium text-magenta-600 hover:text-magenta-500">
         Clear
       </button>
     </div>

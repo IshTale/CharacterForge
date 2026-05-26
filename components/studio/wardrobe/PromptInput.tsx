@@ -6,14 +6,14 @@ export default function PromptInput() {
   const [prompt, setPrompt] = useState("");
   return (
     <div className="space-y-2">
-      <label className="block text-sm text-gray-300">Garment Prompt</label>
+      <label className="block text-sm font-medium text-plum-800">Garment Prompt</label>
       <input
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         placeholder="Cyberpunk leather jacket"
-        className="w-full rounded border border-gray-700 bg-transparent px-3 py-2"
+        className="beauty-input w-full"
       />
-      <button className="rounded bg-white px-3 py-2 text-sm text-black" type="button">
+      <button className="beauty-primary" type="button">
         Generate
       </button>
     </div>

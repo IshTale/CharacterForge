@@ -16,7 +16,9 @@ export default function TextureSelector({ selected, onSelect }: TextureSelectorP
           type="button"
           onClick={() => onSelect(texture)}
           className={`rounded border px-2 py-1 text-xs ${
-            selected === texture ? "border-white" : "border-gray-700"
+            selected === texture
+              ? "border-magenta-500 bg-magenta-500 text-white"
+              : "border-mint-300 bg-white/50 text-plum-700"
           }`}
         >
           {texture}

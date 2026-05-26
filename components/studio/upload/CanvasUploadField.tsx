@@ -89,22 +89,22 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
   const ready = Boolean(fileId);
 
   return (
-    <section className="rounded-xl border border-gray-700 bg-gray-900/40 p-4 shadow-lg">
+    <section className="beauty-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">{requirements.label}</h2>
-          <p className="mt-1 text-xs text-gray-400">{requirements.poseHint}</p>
+          <h2 className="text-lg font-semibold text-plum-900">{requirements.label}</h2>
+          <p className="mt-1 text-xs text-plum-700/70">{requirements.poseHint}</p>
         </div>
         <span
           className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-            ready ? "bg-emerald-500/20 text-emerald-300" : "bg-gray-800 text-gray-500"
+            ready ? "bg-mint-200 text-mint-500" : "bg-mint-100 text-plum-700/60"
           }`}
         >
           {busy ? "Uploading…" : ready ? "Ready" : "Empty"}
         </span>
       </div>
 
-      <ul className="mt-3 space-y-1 text-xs text-gray-500">
+      <ul className="mt-3 space-y-1 text-xs text-plum-700/60">
         <li>
           Formats: {requirements.formats} · Max {requirements.maxFileSizeMb}MB · Long side ≤{" "}
           {requirements.maxLongSidePx}px
@@ -114,11 +114,11 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
 
       <label
         htmlFor={inputId}
-        className={`mt-4 block cursor-pointer rounded-lg border border-dashed border-gray-600 p-4 transition hover:border-gray-500 ${
+        className={`mt-4 block cursor-pointer rounded-xl border border-dashed border-mint-300 bg-mint-100/50 p-4 transition hover:border-magenta-400 hover:bg-white/70 ${
           busy ? "pointer-events-none opacity-60" : ""
         }`}
       >
-        <span className="text-sm text-gray-300">
+        <span className="text-sm font-medium text-plum-800">
           {busy ? "Validating and uploading…" : `Choose ${requirements.label.toLowerCase()} photo`}
         </span>
         <input
@@ -134,14 +134,14 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
           }}
         />
         {basePhoto && (
-          <p className="mt-1 truncate text-xs text-gray-500">{basePhoto.name}</p>
+          <p className="mt-1 truncate text-xs text-plum-700/60">{basePhoto.name}</p>
         )}
       </label>
 
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
       {previewUrl && (
-        <div className="mt-4 overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
+        <div className="mt-4 overflow-hidden rounded-xl border border-mint-200 bg-white/70 shadow-lg shadow-mint-500/10">
           <div className="relative aspect-[4/5] w-full max-h-64">
             <Image
               src={previewUrl}
@@ -152,13 +152,13 @@ export default function CanvasUploadField({ canvas }: CanvasUploadFieldProps) {
               unoptimized
             />
           </div>
-          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-400">
+          <div className="flex items-center justify-between px-3 py-2 text-xs text-plum-700/70">
             <span>{ready ? "Uploaded to studio" : "Preview only"}</span>
             <button
               type="button"
               onClick={clearUpload}
               disabled={busy}
-              className="text-gray-300 hover:text-white disabled:opacity-50"
+              className="font-medium text-magenta-600 hover:text-magenta-500 disabled:opacity-50"
             >
               Clear
             </button>

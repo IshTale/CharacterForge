@@ -9,8 +9,8 @@ export default function UploadPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Upload Base Photos</h1>
-        <p className="text-sm text-gray-400">
+        <h1 className="text-2xl font-semibold text-plum-900">Upload Base Photos</h1>
+        <p className="max-w-2xl text-sm text-plum-700/70">
           Each canvas is validated against Perfect Corp requirements before upload. These photos
           are required before continuing to styling modules.
         </p>

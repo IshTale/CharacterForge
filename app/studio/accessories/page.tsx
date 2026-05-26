@@ -93,8 +93,8 @@ export default function AccessoriesPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Accessories</h1>
-        <p className="text-sm text-gray-400">
+        <h1 className="text-2xl font-semibold text-plum-900">Accessories</h1>
+        <p className="max-w-2xl text-sm text-plum-700/70">
           Upload reference photos for rings, bracelets, watches, and necklaces, then apply them to
           the matching hand or headshot canvas.
         </p>
@@ -102,10 +102,10 @@ export default function AccessoriesPage() {
 
       <section className="space-y-4">
         <header className="space-y-1">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-magenta-600">
             Accessory references
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-plum-700/60">
             Rings, bracelets, and watches use the hand & wrist photo. Necklaces use the headshot.
           </p>
         </header>
@@ -128,7 +128,7 @@ export default function AccessoriesPage() {
         type="button"
         onClick={handleApplyAccessories}
         disabled={applying || !canApply}
-        className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-60"
+        className="beauty-primary"
       >
         {applying ? "Applying accessories..." : "Apply accessories"}
       </button>

@@ -182,7 +182,7 @@ export default function MakeupPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-semibold">Makeup Studio</h1>
+      <h1 className="text-2xl font-semibold text-plum-900">Makeup Studio</h1>
       <FaceRegionMap
         selectedRegion={selectedRegion}
         onSelect={(region) => {
@@ -207,7 +207,7 @@ export default function MakeupPage() {
             <div className="space-y-3">
               {patternCategories.length > 1 && (
                 <div>
-                  <p className="mb-2 text-xs text-gray-400">Style group</p>
+                  <p className="mb-2 text-xs font-medium text-plum-700/70">Style group</p>
                   <ColorCategoryFilter
                     categories={patternCategories}
                     selected={colorCategory}
@@ -218,7 +218,7 @@ export default function MakeupPage() {
 
               {patternPanelTitle && (
                 <div>
-                  <p className="mb-2 text-xs text-gray-400">{patternPanelTitle}</p>
+                  <p className="mb-2 text-xs font-medium text-plum-700/70">{patternPanelTitle}</p>
                   {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
                   <PatternSelector
                     patterns={filteredPatterns}
@@ -234,7 +234,7 @@ export default function MakeupPage() {
           {selectedRegion === "skin_smooth" ? (
             <>
               <div>
-                <p className="mb-1 text-xs text-gray-400">Smooth strength</p>
+                <p className="mb-1 text-xs text-plum-700/70">Smooth strength</p>
                 <IntensitySlider
                   value={selectedEffect.skinSmoothStrength ?? 50}
                   onChange={(skinSmoothStrength) =>
@@ -243,7 +243,7 @@ export default function MakeupPage() {
                 />
               </div>
               <div>
-                <p className="mb-1 text-xs text-gray-400">Color intensity</p>
+                <p className="mb-1 text-xs text-plum-700/70">Color intensity</p>
                 <IntensitySlider
                   value={selectedEffect.skinSmoothColorIntensity ?? 45}
                   onChange={(skinSmoothColorIntensity) =>
@@ -258,9 +258,9 @@ export default function MakeupPage() {
                 {Array.from({ length: colorSlotCount }).map((_, index) => (
                   <div
                     key={index}
-                    className="space-y-2 rounded border border-gray-800 p-3"
+                    className="space-y-2 rounded-xl border border-mint-200 bg-mint-50/50 p-3"
                   >
-                    <p className="text-xs font-medium text-gray-300">
+                    <p className="text-xs font-medium text-plum-800">
                       {colorSlotCount > 1 ? `Color ${index + 1}` : "Color"}
                     </p>
                     <ColorPicker
@@ -268,7 +268,7 @@ export default function MakeupPage() {
                       onChange={(color) => setColorAtIndex(index, color)}
                     />
                     <div>
-                      <p className="mb-1 text-xs text-gray-400">Intensity</p>
+                      <p className="mb-1 text-xs text-plum-700/70">Intensity</p>
                       <IntensitySlider
                         value={selectedEffect.colorIntensities[index] ?? 50}
                         onChange={(intensity) => setIntensityAtIndex(index, intensity)}
@@ -288,7 +288,7 @@ export default function MakeupPage() {
         type="button"
         onClick={handleApply}
         disabled={applying}
-        className="rounded bg-white px-4 py-2 text-black disabled:opacity-60"
+        className="beauty-primary"
       >
         {applying ? "Applying…" : "Apply Makeup"}
       </button>

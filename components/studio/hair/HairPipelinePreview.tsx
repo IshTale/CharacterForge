@@ -14,7 +14,7 @@ export default function HairPipelinePreview({ hair }: HairPipelinePreviewProps) 
           <span
             key={stage}
             className={`rounded-full px-3 py-1 text-xs font-medium ${
-              active ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-500"
+              active ? "bg-magenta-500 text-white" : "bg-mint-100 text-plum-700/60"
             }`}
           >
             {HAIR_PIPELINE_LABEL[stage]}

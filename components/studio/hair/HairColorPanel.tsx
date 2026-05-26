@@ -109,7 +109,7 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
   return (
     <div className="space-y-4">
       <div>
-        <p className="mb-2 text-xs text-gray-400">Color style</p>
+        <p className="mb-2 text-xs font-medium text-plum-700/70">Color style</p>
         <div className="flex flex-wrap gap-2">
           {PATTERN_OPTIONS.map((option) => (
             <button
@@ -118,8 +118,8 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
               onClick={() => setPattern(option.id)}
               className={`rounded-full border px-3 py-1 text-xs ${
                 value.pattern.name === option.id
-                  ? "border-white bg-white text-black"
-                  : "border-gray-600 text-gray-300 hover:border-gray-500"
+                  ? "border-magenta-500 bg-magenta-500 text-white"
+                  : "border-mint-300 bg-white/50 text-plum-700 hover:border-magenta-400"
               }`}
             >
               {option.label}
@@ -129,7 +129,7 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
       </div>
 
       <div>
-        <p className="mb-2 text-xs text-gray-400">Source</p>
+        <p className="mb-2 text-xs font-medium text-plum-700/70">Source</p>
         <div className="flex flex-wrap gap-2">
           {(["custom", "preset"] as const).map((mode) => (
             <button
@@ -138,8 +138,8 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
               onClick={() => setMode(mode)}
               className={`rounded-full border px-3 py-1 text-xs ${
                 value.mode === mode
-                  ? "border-white bg-white text-black"
-                  : "border-gray-600 text-gray-300 hover:border-gray-500"
+                  ? "border-magenta-500 bg-magenta-500 text-white"
+                  : "border-mint-300 bg-white/50 text-plum-700 hover:border-magenta-400"
               }`}
             >
               {mode === "custom" ? "Custom colors" : "Preset"}
@@ -149,12 +149,12 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
       </div>
 
       {value.mode === "preset" ? (
-        <div className="space-y-2 rounded border border-gray-800 p-3">
-          <p className="text-xs font-medium text-gray-300">Preset</p>
+        <div className="space-y-2 rounded-xl border border-mint-200 bg-mint-50/50 p-3">
+          <p className="text-xs font-medium text-plum-800">Preset</p>
           <select
             value={value.preset ?? ""}
             onChange={(event) => setPreset(event.target.value)}
-            className="w-full rounded border border-gray-700 bg-gray-950/60 px-3 py-2 text-sm text-gray-100"
+            className="beauty-input w-full"
           >
             {presets.map((preset) => (
               <option key={preset} value={preset}>
@@ -166,21 +166,21 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
       ) : (
         <>
           {value.palettes.map((palette, index) => (
-            <div key={index} className="space-y-2 rounded border border-gray-800 p-3">
-              <p className="text-xs font-medium text-gray-300">{labels[index]}</p>
+            <div key={index} className="space-y-2 rounded-xl border border-mint-200 bg-mint-50/50 p-3">
+              <p className="text-xs font-medium text-plum-800">{labels[index]}</p>
               <ColorPicker
                 value={palette.color}
                 onChange={(color) => setPaletteAt(index, { color })}
               />
               <div>
-                <p className="mb-1 text-xs text-gray-400">Color intensity</p>
+                <p className="mb-1 text-xs text-plum-700/70">Color intensity</p>
                 <IntensitySlider
                   value={palette.color_intensity}
                   onChange={(color_intensity) => setPaletteAt(index, { color_intensity })}
                 />
               </div>
               <div>
-                <p className="mb-1 text-xs text-gray-400">Shine intensity</p>
+                <p className="mb-1 text-xs text-plum-700/70">Shine intensity</p>
                 <IntensitySlider
                   value={palette.shine_intensity}
                   onChange={(shine_intensity) => setPaletteAt(index, { shine_intensity })}
@@ -190,17 +190,17 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
           ))}
 
           {value.pattern.name === "ombre" && (
-            <div className="space-y-3 rounded border border-gray-800 p-3">
-              <p className="text-xs font-medium text-gray-300">Ombre blend</p>
+            <div className="space-y-3 rounded-xl border border-mint-200 bg-mint-50/50 p-3">
+              <p className="text-xs font-medium text-plum-800">Ombre blend</p>
               <div>
-                <p className="mb-1 text-xs text-gray-400">Blend strength</p>
+                <p className="mb-1 text-xs text-plum-700/70">Blend strength</p>
                 <IntensitySlider
                   value={value.pattern.blend_strength ?? 50}
                   onChange={(blend_strength) => setOmbreField({ blend_strength })}
                 />
               </div>
               <div>
-                <p className="mb-1 text-xs text-gray-400">
+                <p className="mb-1 text-xs text-plum-700/70">
                   Line offset ({value.pattern.line_offset?.toFixed(2) ?? "0.00"})
                 </p>
                 <input
@@ -213,7 +213,7 @@ export default function HairColorPanel({ value, onChange }: HairColorPanelProps)
                   }
                   className="w-full"
                 />
-                <p className="mt-1 text-[10px] text-gray-500">
+                <p className="mt-1 text-[10px] text-plum-700/60">
                   Positive pushes top color lower; negative pushes bottom color higher.
                 </p>
               </div>

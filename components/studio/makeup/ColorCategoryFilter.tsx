@@ -21,7 +21,9 @@ export default function ColorCategoryFilter({
         type="button"
         onClick={() => onSelect("all")}
         className={`rounded-full border px-3 py-1 text-xs ${
-          selected === "all" ? "border-white bg-white text-black" : "border-gray-600 text-gray-300"
+          selected === "all"
+            ? "border-magenta-500 bg-magenta-500 text-white"
+            : "border-mint-300 bg-white/50 text-plum-700 hover:border-magenta-400"
         }`}
       >
         All
@@ -32,7 +34,9 @@ export default function ColorCategoryFilter({
           type="button"
           onClick={() => onSelect(category)}
           className={`rounded-full border px-3 py-1 text-xs ${
-            selected === category ? "border-white bg-white text-black" : "border-gray-600 text-gray-300"
+            selected === category
+              ? "border-magenta-500 bg-magenta-500 text-white"
+              : "border-mint-300 bg-white/50 text-plum-700 hover:border-magenta-400"
           }`}
         >
           {category}

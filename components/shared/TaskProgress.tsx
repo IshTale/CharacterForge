@@ -12,7 +12,7 @@ const LABEL: Record<TaskProgressProps["status"], string> = {
 
 export default function TaskProgress({ status }: TaskProgressProps) {
   return (
-    <div className="rounded border border-gray-700 p-2 text-xs text-gray-300">
+    <div className="rounded-lg border border-mint-300 bg-mint-100/50 p-2 text-xs font-medium text-plum-800">
       Status: {LABEL[status]}
     </div>
   );

@@ -68,16 +68,16 @@ export default function WardrobePage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Wardrobe</h1>
-        <p className="text-sm text-gray-400">
+        <h1 className="text-2xl font-semibold text-plum-900">Wardrobe</h1>
+        <p className="max-w-2xl text-sm text-plum-700/70">
           Configure clothing with AI generation or your own product photo, then apply the clothing
           try-on pipeline.
         </p>
       </header>
 
-      <section className="rounded-xl border border-gray-700 bg-gray-900/30 p-4">
-        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-400">Model fit</p>
-        <div className="inline-flex rounded-lg border border-gray-700 p-1">
+      <section className="beauty-panel p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-magenta-600">Model fit</p>
+        <div className="inline-flex rounded-xl border border-mint-300 bg-mint-100/40 p-1">
           {(["female", "male"] as const).map((gender) => (
             <button
               key={gender}
@@ -85,8 +85,8 @@ export default function WardrobePage() {
               onClick={() => setGender(gender)}
               className={`rounded-md px-4 py-1.5 text-xs font-medium capitalize transition ${
                 wardrobe.gender === gender
-                  ? "bg-white text-black"
-                  : "text-gray-400 hover:text-gray-200"
+                  ? "bg-magenta-500 text-white shadow-sm"
+                  : "text-plum-700/60 hover:text-plum-900"
               }`}
             >
               {gender}
@@ -96,7 +96,7 @@ export default function WardrobePage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Clothing</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-magenta-600">Clothing</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {clothingSlots.map((slot) => (
             <WardrobeSlotPanel
@@ -116,7 +116,7 @@ export default function WardrobePage() {
         type="button"
         onClick={handleApply}
         disabled={applying}
-        className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-60"
+        className="beauty-primary"
       >
         {applying ? "Applying clothing…" : "Apply clothing"}
       </button>

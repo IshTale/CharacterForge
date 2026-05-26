@@ -22,7 +22,7 @@ export default function HairTemplateSelector({
         {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}
-            className="aspect-[3/4] animate-pulse rounded border border-gray-800 bg-gray-800/60"
+            className="aspect-[3/4] animate-pulse rounded-xl border border-mint-200 bg-mint-50/60"
           />
         ))}
       </div>
@@ -30,7 +30,7 @@ export default function HairTemplateSelector({
   }
 
   if (templates.length === 0) {
-    return <p className="text-xs text-gray-500">No hairstyle templates available.</p>;
+    return <p className="text-xs text-plum-700/60">No hairstyle templates available.</p>;
   }
 
   return (
@@ -45,10 +45,12 @@ export default function HairTemplateSelector({
             onClick={() => onSelect(template)}
             title={template.title}
             className={`overflow-hidden rounded border text-left transition ${
-              isSelected ? "border-white ring-1 ring-white" : "border-gray-700 hover:border-gray-500"
+              isSelected
+                ? "border-magenta-500 ring-2 ring-magenta-400/30"
+                : "border-mint-200 bg-mint-50/50 hover:border-mint-500"
             }`}
           >
-            <div className="relative aspect-[3/4] bg-gray-900">
+            <div className="relative aspect-[3/4] bg-mint-100">
               <Image
                 src={template.thumb}
                 alt={template.title}
@@ -58,7 +60,7 @@ export default function HairTemplateSelector({
                 unoptimized
               />
             </div>
-            <p className="truncate px-1 py-1 text-[10px] text-gray-400">{template.title}</p>
+            <p className="truncate px-1 py-1 text-[10px] text-plum-700/70">{template.title}</p>
           </button>
         );
       })}

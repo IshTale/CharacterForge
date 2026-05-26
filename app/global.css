@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --canvas-headshot: #5b8def;
-  --canvas-fullbody: #32c48d;
+  --canvas-headshot: #3fb7c7;
+  --canvas-fullbody: #3fb7c7;
   --canvas-hand: #f7b267;
-  --canvas-feet: #e76f51;
+  --canvas-feet: #9fe9ed;
 }
 
 * {
@@ -16,6 +16,43 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #0e1014;
-  color: #f7f8fa;
+  background:
+    radial-gradient(circle at top left, rgba(159, 233, 237, 0.72), transparent 36rem),
+    radial-gradient(circle at top right, rgba(201, 245, 246, 0.82), transparent 34rem),
+    radial-gradient(circle at bottom left, rgba(255, 191, 211, 0.2), transparent 28rem),
+    linear-gradient(135deg, #f3fdff 0%, #e8fbfb 45%, #fff3f8 100%);
+  color: #2b1025;
+}
+
+::selection {
+  background: #f04aa7;
+  color: white;
+}
+
+input[type="range"] {
+  accent-color: #db1f85;
+}
+
+@layer components {
+  .beauty-card {
+    @apply rounded-2xl border border-mint-300/70 bg-white/70 backdrop-blur;
+    box-shadow: 0 18px 50px rgba(31, 111, 123, 0.18);
+  }
+
+  .beauty-panel {
+    @apply rounded-xl border border-mint-300/70 bg-mint-50/70 backdrop-blur;
+    box-shadow: 0 12px 34px rgba(31, 111, 123, 0.14);
+  }
+
+  .beauty-primary {
+    @apply rounded-lg bg-magenta-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-magenta-500/20 transition hover:bg-magenta-600 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .beauty-secondary {
+    @apply rounded-lg border border-mint-300 bg-mint-100 px-4 py-2 text-sm font-medium text-plum-800 transition hover:border-mint-500 hover:bg-mint-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .beauty-input {
+    @apply rounded-lg border border-mint-200 bg-white/80 px-3 py-2 text-sm text-plum-900 outline-none ring-mint-300/40 placeholder:text-plum-700/40 focus:ring-2 disabled:opacity-60;
+  }
 }

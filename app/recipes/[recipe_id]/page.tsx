@@ -129,9 +129,9 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
   if (!recipe) {
     return (
       <main className="mx-auto max-w-5xl p-10">
-        <h1 className="text-3xl font-semibold">Recipe not found</h1>
-        <p className="mt-2 text-gray-300">No published recipe matches this id.</p>
-        <Link className="mt-6 inline-block text-sm text-gray-400 underline" href="/">
+        <h1 className="text-3xl font-semibold text-plum-900">Recipe not found</h1>
+        <p className="mt-2 text-plum-700/70">No published recipe matches this id.</p>
+        <Link className="mt-6 inline-block text-sm font-medium text-magenta-600 underline" href="/">
           Back to community
         </Link>
       </main>
@@ -144,23 +144,23 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
 
   return (
     <main className="mx-auto max-w-5xl p-10">
-      <Link className="text-sm text-gray-400 underline" href="/">
+      <Link className="text-sm font-medium text-magenta-600 underline" href="/">
         Back to community
       </Link>
       <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-6">
-          <p className="text-xs uppercase tracking-wide text-gray-500">
+        <div className="beauty-card p-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-magenta-600">
             Published {new Date(recipe.created_at).toLocaleDateString()}
           </p>
           <h1 className="sr-only">{title}</h1>
           <RecipeTitleEditor recipeId={recipe.recipe_id} initialTitle={title} />
-          <p className="mt-3 text-sm text-gray-300">
+          <p className="mt-3 text-sm font-medium text-plum-800/80">
             This recipe stores its reusable styling data and image references under recipe id{" "}
-            <span className="font-mono text-gray-100">{recipe.recipe_id}</span>. Base user photos
+            <span className="font-mono text-plum-900">{recipe.recipe_id}</span>. Base user photos
             are still supplied by whoever opens the recipe.
           </p>
           <Link
-            className="mt-6 inline-block rounded bg-white px-4 py-2 text-sm font-medium text-black"
+            className="beauty-primary mt-6 inline-block"
             href={`/studio/upload?recipe_id=${recipe.recipe_id}`}
           >
             Open studio to try on
@@ -170,9 +170,9 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
         <CoverImage title={title} imageUrl={recipe.display_image_url} />
       </section>
 
-      <section className="mt-8 rounded-xl border border-gray-800 bg-gray-950/40 p-6">
-        <h2 className="text-xl font-semibold">Images Used</h2>
-        <p className="mt-2 text-sm text-gray-400">
+      <section className="beauty-card mt-8 p-6">
+        <h2 className="text-xl font-semibold text-plum-900">Images Used</h2>
+        <p className="mt-2 text-sm font-medium text-plum-800/80">
           Reusable images saved with this recipe, including the display picture and any garment,
           hair, nail, or jewelry references.
         </p>
@@ -183,15 +183,17 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">No reusable image references were stored.</p>
+          <p className="mt-4 text-sm font-medium text-plum-800/70">
+            No reusable image references were stored.
+          </p>
         )}
       </section>
 
-      <section className="mt-8 rounded-xl border border-gray-800 bg-gray-950/40 p-6">
+      <section className="beauty-card mt-8 p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">Makeup Data</h2>
-            <p className="mt-2 text-sm text-gray-400">
+            <h2 className="text-xl font-semibold text-plum-900">Makeup Data</h2>
+            <p className="mt-2 text-sm font-medium text-plum-800/80">
               Type: {recipe.makeup.type}
               {recipe.makeup.selected_region
                 ? ` - selected region: ${MAKEUP_LABELS[recipe.makeup.selected_region]}`
@@ -199,7 +201,7 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
             </p>
           </div>
           {recipe.makeup.api_effects?.length ? (
-            <span className="rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-200">
+            <span className="rounded-full bg-mint-200 px-3 py-1 text-xs font-medium text-mint-500">
               {recipe.makeup.api_effects.length} API effects
             </span>
           ) : null}
@@ -212,7 +214,9 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">No makeup regions have been configured.</p>
+          <p className="mt-4 text-sm font-medium text-plum-800/70">
+            No makeup regions have been configured.
+          </p>
         )}
       </section>
     </main>
@@ -221,7 +225,7 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
 
 function CoverImage({ title, imageUrl }: { title: string; imageUrl?: string }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
+    <div className="overflow-hidden rounded-2xl border border-mint-300/70 bg-white/70 shadow-[0_18px_45px_rgba(31,111,123,0.16)]">
       <div className="relative aspect-[4/5]">
         {imageUrl ? (
           <Image
@@ -234,18 +238,52 @@ function CoverImage({ title, imageUrl }: { title: string; imageUrl?: string }) {
             unoptimized
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
-            No display picture has been published for this recipe.
-          </div>
+          <CoverPlaceholder />
         )}
       </div>
     </div>
   );
 }
 
+function CoverPlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_30%_20%,rgba(255,191,211,0.42),transparent_34%),linear-gradient(135deg,#fff3f8_0%,#e8fbfb_100%)] px-8 text-center">
+      <div className="grid h-20 w-20 place-items-center rounded-full border border-white/80 bg-white/60 shadow-[0_14px_34px_rgba(31,111,123,0.16)]">
+        <SparkleIcon />
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-plum-800/80">
+          Cover moment
+        </p>
+        <p className="mt-2 text-sm font-medium text-plum-800/70">
+          Add a display picture to make this look shine.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-10 w-10 text-magenta-500"
+      viewBox="0 0 32 32"
+      fill="none"
+    >
+      <path
+        d="M16 3.5l2.4 7.1 7.1 2.4-7.1 2.4-2.4 7.1-2.4-7.1-7.1-2.4 7.1-2.4L16 3.5z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      <path d="M24.5 20.5l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="#3fb7c7" />
+    </svg>
+  );
+}
+
 function RecipeImageCard({ image }: { image: RecipeImage }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-gray-800 bg-gray-950">
+    <article className="overflow-hidden rounded-xl border border-mint-300/70 bg-mint-50/60 shadow-[0_12px_30px_rgba(31,111,123,0.12)]">
       <div className="relative aspect-square">
         <Image
           src={image.url}
@@ -257,8 +295,8 @@ function RecipeImageCard({ image }: { image: RecipeImage }) {
         />
       </div>
       <div className="p-3">
-        <h3 className="text-sm font-medium text-gray-100">{image.label}</h3>
-        {image.detail && <p className="mt-1 text-xs text-gray-500">{image.detail}</p>}
+        <h3 className="text-sm font-medium text-plum-900">{image.label}</h3>
+        {image.detail && <p className="mt-1 text-xs font-medium text-plum-800/70">{image.detail}</p>}
       </div>
     </article>
   );
@@ -276,16 +314,18 @@ function MakeupEffectCard({
   const details = effectDetails(effect);
 
   return (
-    <article className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-      <h3 className="font-medium text-gray-100">{MAKEUP_LABELS[region]}</h3>
-      {effect.pattern && <p className="mt-1 text-xs text-gray-500">Pattern: {effect.pattern}</p>}
+    <article className="rounded-xl border border-mint-300/70 bg-mint-50/60 p-4 shadow-[0_12px_30px_rgba(31,111,123,0.1)]">
+      <h3 className="font-medium text-plum-900">{MAKEUP_LABELS[region]}</h3>
+      {effect.pattern && (
+        <p className="mt-1 text-xs font-medium text-plum-800/70">Pattern: {effect.pattern}</p>
+      )}
 
       {colors.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {colors.map((color, index) => (
             <span
               key={`${color}-${index}`}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-800 bg-gray-900 px-2 py-1 text-xs text-gray-300"
+              className="inline-flex items-center gap-2 rounded-full border border-mint-300 bg-mint-100/60 px-2 py-1 text-xs text-plum-800"
             >
               <span
                 className="h-4 w-4 rounded-full border border-white/20"
@@ -299,7 +339,7 @@ function MakeupEffectCard({
       )}
 
       {details.length > 0 && (
-        <ul className="mt-3 space-y-1 text-xs text-gray-400">
+        <ul className="mt-3 space-y-1 text-xs font-medium text-plum-800/70">
           {details.map((detail) => (
             <li key={detail}>{detail}</li>
           ))}

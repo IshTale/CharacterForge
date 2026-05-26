@@ -38,7 +38,7 @@ export default function RecipeTitleEditor({ recipeId, initialTitle }: RecipeTitl
 
   return (
     <div className="mt-3 space-y-2">
-      <label className="block text-xs uppercase tracking-wide text-gray-500" htmlFor="recipe-title">
+      <label className="block text-xs font-semibold uppercase tracking-wide text-magenta-600" htmlFor="recipe-title">
         Recipe title
       </label>
       <div className="flex flex-wrap gap-3">
@@ -46,19 +46,19 @@ export default function RecipeTitleEditor({ recipeId, initialTitle }: RecipeTitl
           id="recipe-title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          className="min-w-0 flex-1 rounded border border-gray-800 bg-gray-950 px-3 py-2 text-2xl font-semibold text-white outline-none ring-white/20 placeholder:text-gray-600 focus:ring-2"
+          className="beauty-input min-w-0 flex-1 text-2xl font-semibold"
           placeholder="Untitled Recipe"
         />
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-60"
+          className="beauty-secondary"
         >
           {saving ? "Saving..." : "Save title"}
         </button>
       </div>
-      {message && <p className="text-xs text-gray-400">{message}</p>}
+      {message && <p className="text-xs text-plum-700/60">{message}</p>}
     </div>
   );
 }

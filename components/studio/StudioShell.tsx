@@ -136,15 +136,15 @@ export default function StudioShell({ children }: StudioShellProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col text-plum-900">
       {/* Top Navigation Header */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-800 px-6">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-mint-200/80 bg-mint-50/70 px-6 shadow-sm shadow-mint-500/10 backdrop-blur-xl">
         {/* Left Side: Back Button */}
         <div className="flex flex-1 items-center justify-start">
           {prevModule && (
             <Link
               href={prevModule.href}
-              className="rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+              className="beauty-secondary"
             >
               Back
             </Link>
@@ -153,10 +153,10 @@ export default function StudioShell({ children }: StudioShellProps) {
 
         {/* Center: Title */}
         <div className="flex flex-col items-center gap-1">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-magenta-600">
             Design Studio
           </h2>
-          <p className="text-xs text-gray-600">Title and cover are set at publish.</p>
+          <p className="text-xs text-plum-700/70">Title and cover are set at publish.</p>
         </div>
 
         {/* Right Side: Next/Publish Button */}
@@ -175,14 +175,14 @@ export default function StudioShell({ children }: StudioShellProps) {
             canAdvance ? (
               <Link
                 href={nextModule.href}
-                className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-gray-200"
+                className="beauty-primary"
               >
                 Next
               </Link>
             ) : (
               <span
                 title="Upload all required base photos before continuing"
-                className="cursor-not-allowed rounded-md bg-white/40 px-4 py-2 text-sm font-medium text-black/60"
+                className="cursor-not-allowed rounded-lg bg-mint-200 px-5 py-2.5 text-sm font-semibold text-plum-800/60"
               >
                 Next
               </span>
@@ -192,7 +192,7 @@ export default function StudioShell({ children }: StudioShellProps) {
               type="button"
               onClick={openPublishDialog}
               disabled={publishing}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="beauty-primary"
             >
               {publishing ? "Publishing..." : "Publish recipe"}
             </button>
@@ -201,27 +201,27 @@ export default function StudioShell({ children }: StudioShellProps) {
       </header>
 
       {publishDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-plum-900/60 px-4 backdrop-blur-sm">
           <form
             role="dialog"
             aria-modal="true"
             aria-labelledby="publish-recipe-title"
-            className="w-full max-w-lg rounded-xl border border-gray-800 bg-gray-950 p-6 shadow-2xl"
+            className="beauty-card w-full max-w-lg p-6"
             onSubmit={(event) => {
               event.preventDefault();
               void handlePublish();
             }}
           >
-            <h2 id="publish-recipe-title" className="text-lg font-semibold text-white">
+            <h2 id="publish-recipe-title" className="text-lg font-semibold text-plum-900">
               Publish recipe
             </h2>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-plum-700/75">
               Add the community title and cover image that will appear on the recipe card.
             </p>
 
             <div className="mt-5 space-y-4">
               <label className="block" htmlFor="publish-title">
-                <span className="text-sm font-medium text-gray-200">Recipe title</span>
+                <span className="text-sm font-medium text-plum-800">Recipe title</span>
                 <input
                   id="publish-title"
                   type="text"
@@ -232,15 +232,15 @@ export default function StudioShell({ children }: StudioShellProps) {
                   }}
                   placeholder="Untitled Recipe"
                   disabled={publishing}
-                  className="mt-2 w-full rounded-md border border-gray-800 bg-black px-3 py-2 text-sm text-white outline-none ring-white/20 placeholder:text-gray-600 focus:ring-2 disabled:opacity-60"
+                  className="beauty-input mt-2 w-full"
                 />
               </label>
 
               <label
                 htmlFor="publish-cover-image"
-                className="block cursor-pointer rounded-lg border border-dashed border-gray-700 p-4 transition-colors hover:border-gray-500"
+                className="block cursor-pointer rounded-xl border border-dashed border-mint-300 bg-mint-100/50 p-4 transition-colors hover:border-magenta-400"
               >
-                <span className="text-sm font-medium text-gray-200">Recipe cover image</span>
+                <span className="text-sm font-medium text-plum-800">Recipe cover image</span>
                 <input
                   id="publish-cover-image"
                   type="file"
@@ -252,16 +252,17 @@ export default function StudioShell({ children }: StudioShellProps) {
                     setPublishError(null);
                   }}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-plum-700/60">
                   {publishImageFile?.name ?? "Upload a PNG or JPEG cover for the community card."}
                 </p>
               </label>
 
               {publishImagePreview && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={publishImagePreview}
                   alt="Selected recipe cover preview"
-                  className="h-44 w-full rounded-lg border border-gray-800 object-cover"
+                  className="h-44 w-full rounded-xl border border-mint-200 object-cover shadow-lg shadow-mint-500/10"
                 />
               )}
             </div>
@@ -273,14 +274,14 @@ export default function StudioShell({ children }: StudioShellProps) {
                 type="button"
                 onClick={closePublishDialog}
                 disabled={publishing}
-                className="rounded-md border border-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                className="beauty-secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={publishing}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="beauty-primary"
               >
                 {publishing ? "Publishing..." : "Publish recipe"}
               </button>
@@ -290,7 +291,7 @@ export default function StudioShell({ children }: StudioShellProps) {
       )}
 
       {/* Top Horizontal Progress Stepper */}
-      <div className="border-b border-gray-800 bg-gray-900/30 px-6 py-5">
+      <div className="border-b border-mint-200/80 bg-mint-100/70 px-6 py-5 shadow-inner shadow-white/50">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between">
           {modules.map((item, index) => {
             const isActive = index === activeIndex;
@@ -302,16 +303,16 @@ export default function StudioShell({ children }: StudioShellProps) {
                 <div className="flex items-center gap-3 shrink-0">
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors ${isActive
-                        ? "bg-blue-600 text-white ring-4 ring-blue-900/50"
+                        ? "bg-magenta-500 text-white ring-4 ring-magenta-400/25"
                         : isPast
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-800 text-gray-400"
+                          ? "bg-mint-500 text-white"
+                          : "bg-white/70 text-plum-700/50"
                       }`}
                   >
                     {index + 1}
                   </span>
                   <span
-                    className={`hidden sm:block text-sm font-medium transition-colors ${isActive ? "text-white" : isPast ? "text-gray-300" : "text-gray-600"
+                    className={`hidden sm:block text-sm font-medium transition-colors ${isActive ? "text-magenta-600" : isPast ? "text-plum-800" : "text-plum-700/50"
                       }`}
                   >
                     {item.label}
@@ -321,7 +322,7 @@ export default function StudioShell({ children }: StudioShellProps) {
                 {/* Connecting Line (Hidden for the very last item) */}
                 {index < modules.length - 1 && (
                   <div
-                    className={`mx-4 h-[2px] flex-1 rounded-full transition-colors ${isPast ? "bg-blue-600" : "bg-gray-800"
+                    className={`mx-4 h-[2px] flex-1 rounded-full transition-colors ${isPast ? "bg-mint-500" : "bg-white/70"
                       }`}
                   />
                 )}
@@ -332,13 +333,15 @@ export default function StudioShell({ children }: StudioShellProps) {
       </div>
 
       {/* Main Content Area */}
-      <main className="grid flex-grow grid-cols-12">
+      <main className="grid flex-grow grid-cols-12 bg-mint-50/20">
         {/* Main Workspace (Expanded to 9 columns since sidebar is gone) */}
         <section className="col-span-9 p-6">{children}</section>
 
         {/* Right Sidebar - Previews */}
-        <aside className="col-span-3 border-l border-gray-800 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-gray-300">Canvas Preview</h3>
+        <aside className="col-span-3 border-l border-mint-200/80 bg-mint-50/50 p-4 backdrop-blur">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-magenta-600">
+            Canvas Preview
+          </h3>
           <div className="space-y-2">
             <HeadshotCanvas imageUrl={canvases.headshot.current_image_url} />
             <FullBodyCanvas imageUrl={canvases.fullbody.current_image_url} />
