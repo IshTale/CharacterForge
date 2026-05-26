@@ -36,7 +36,9 @@ export default function JewelrySlotPanel({
     setError(null);
     try {
       ImageValidator.validateAccessory(file);
-      const uploaded = await uploadModuleFile(file, definition.fileModule);
+      const uploaded = await uploadModuleFile(file, definition.fileModule, {
+        usage: "reference"
+      });
       onChange({
         ref_image_url: uploaded.public_url ?? null,
         ref_file_id: uploaded.file_id

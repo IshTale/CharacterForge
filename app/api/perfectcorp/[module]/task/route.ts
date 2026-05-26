@@ -27,7 +27,7 @@ import {
   ensurePerfectCorpFileIds
 } from "@/lib/perfectcorp/ensure-pc-file-id";
 import { createTask, getTask, normaliseTaskStatus } from "@/lib/perfectcorp/task-engine";
-import { KvCache } from "@/lib/storage/kv";
+import { RedisCache } from "@/lib/storage/redis";
 import type { MakeupApiEffect, MakeupVtoTaskPayload } from "@/types/makeup-api";
 
 interface RouteContext {
@@ -120,41 +120,41 @@ function isPublicRemoteUrl(url: string) {
 
 async function resolvePayloadFileIds(
   module: string,
-  kvCache: KvCache,
+  redisCache: RedisCache,
   payload: {
     src_file_id: string;
     ref_file_id?: string;
   }
 ) {
-  payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, kvCache);
+  payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, redisCache);
   if (typeof payload.ref_file_id === "string") {
-    payload.ref_file_id = await ensurePerfectCorpFileId(module, payload.ref_file_id, kvCache);
+    payload.ref_file_id = await ensurePerfectCorpFileId(module, payload.ref_file_id, redisCache);
   }
 }
 
 async function resolveNailPayloadFileIds(
   module: string,
-  kvCache: KvCache,
+  redisCache: RedisCache,
   payload: NailVtoTaskPayload
 ) {
   if (payload.src_file_id) {
-    const sourceUrl = await kvCache.getFileUrl(payload.src_file_id);
+    const sourceUrl = await redisCache.getFileUrl(payload.src_file_id);
     if (sourceUrl && isPublicRemoteUrl(sourceUrl)) {
       payload.src_file_url = sourceUrl;
       delete payload.src_file_id;
     } else {
-      payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, kvCache);
+      payload.src_file_id = await ensurePerfectCorpFileId(module, payload.src_file_id, redisCache);
     }
   }
   if (payload.ref_file_ids?.length) {
     const refUrls = await Promise.all(
-      payload.ref_file_ids.map((fileId) => kvCache.getFileUrl(fileId))
+      payload.ref_file_ids.map((fileId) => redisCache.getFileUrl(fileId))
     );
     if (refUrls.every((url): url is string => Boolean(url && isPublicRemoteUrl(url)))) {
       payload.ref_file_urls = refUrls;
       delete payload.ref_file_ids;
     } else {
-      payload.ref_file_ids = await ensurePerfectCorpFileIds(module, payload.ref_file_ids, kvCache);
+      payload.ref_file_ids = await ensurePerfectCorpFileIds(module, payload.ref_file_ids, redisCache);
     }
   }
 }
@@ -238,7 +238,7 @@ export async function POST(request: Request, context: RouteContext) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const requestSeed = typeof body.request_id === "string" ? body.request_id : undefined;
   const makeupPayload = module === "makeup-vto" ? parseMakeupPayload(body) : null;
-  const kvCache = new KvCache();
+  const redisCache = new RedisCache();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -250,7 +250,7 @@ export async function POST(request: Request, context: RouteContext) {
         if (makeupPayload) {
           validateEffects(makeupPayload.effects as MakeupApiEffect[]);
           send("progress", { step: "validating" });
-          await resolvePayloadFileIds(module, kvCache, makeupPayload);
+          await resolvePayloadFileIds(module, redisCache, makeupPayload);
 
           const result = await applyMakeup(makeupPayload);
           if (
@@ -309,7 +309,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseClothPayload(body);
           if (payload) {
             send("progress", { step: "try-on" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyCloth(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -325,7 +325,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseHairTransferPayload(body);
           if (payload) {
             send("progress", { step: "hair-transfer" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyHairTransfer(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -341,7 +341,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseNailVtoPayload(body);
           if (payload) {
             send("progress", { step: "nail-vto" });
-            await resolveNailPayloadFileIds(module, kvCache, payload);
+            await resolveNailPayloadFileIds(module, redisCache, payload);
             const result = await applyNails(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -357,7 +357,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseJewelryPayload(body);
           if (payload) {
             send("progress", { step: "ring" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyRing(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -371,7 +371,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseJewelryPayload(body);
           if (payload) {
             send("progress", { step: "bracelet" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyBracelet(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -385,7 +385,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseJewelryPayload(body);
           if (payload) {
             send("progress", { step: "watch" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyWatch(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -399,7 +399,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseJewelryPayload(body);
           if (payload) {
             send("progress", { step: "necklace" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const result = await applyNecklace(payload);
             if (
               await completeVtoTask(module, result, payload, send, controller, runStubTask)
@@ -413,7 +413,7 @@ export async function POST(request: Request, context: RouteContext) {
           const payload = parseAccessoryPayload(body);
           if (payload) {
             send("progress", { step: "try-on" });
-            await resolvePayloadFileIds(module, kvCache, payload);
+            await resolvePayloadFileIds(module, redisCache, payload);
             const applyFn =
               module === "hat" ? applyHat : module === "bag" ? applyBag : applyShoes;
             const result = await applyFn(payload);

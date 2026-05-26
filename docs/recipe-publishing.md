@@ -14,6 +14,8 @@ CharacterForge treats a **Recipe** as the portable, shareable definition of a ch
 
 Final four-pane composites that include the creator’s face or body are **not** written to the community index. The grid will eventually use catalog/mannequin thumbnails built from isolated assets in the Recipe (see product README).
 
+Upload storage follows the same privacy split: standalone reference assets (clothes, rings, watches, hair references, nail textures) may be stored in Blob and referenced from the Recipe; base person photos are transient API inputs and are not durable CharacterForge storage.
+
 ## Publish flow (studio → API → storage)
 
 ```mermaid
@@ -22,7 +24,7 @@ sequenceDiagram
   participant Z as Zustand store
   participant API as POST /api/recipes
   participant Repo as recipe/repository
-  participant KV as Vercel KV recipes:all
+  participant Redis as Redis recipes:all
 
   UI->>Z: publishRecipe()
   Z->>Z: prepareRecipeForPublish(recipe)
@@ -31,14 +33,14 @@ sequenceDiagram
   API->>API: deserialiseRecipe(body)
   API->>Repo: createRecipe(recipe)
   Repo->>Repo: recipe_id = randomUUID()
-  Repo->>KV: append to recipes:all array
+  Repo->>Redis: append to recipes:all array
   API-->>Z: { recipe_id }
   Z->>Z: set recipe.recipe_id
 ```
 
 1. **Prepare** — `lib/recipe/publishing.ts` → `prepareRecipeForPublish()` removes any client `recipe_id`, sets `schema_version: "1.0"`, and runs `serialiseRecipe()` / `validateRecipeSchema()`.
 2. **POST** — `store/characterforge.store.ts` → `publishRecipe()` posts to `/api/recipes`.
-3. **Persist** — `lib/recipe/repository.ts` → `createRecipe()` assigns `recipe_id`, appends to the array at KV key `recipes:all` (in-memory fallback when KV is unset).
+3. **Persist** — `lib/recipe/repository.ts` → `createRecipe()` assigns `recipe_id`, appends to the array at Redis key `recipes:all` (ignored `.data/recipes.json` fallback when Redis is unset locally).
 4. **Surface** — Homepage (`/`) calls `listRecipes()` and renders `RecipeListItem` rows only.
 
 Re-publishing today always creates a **new** `recipe_id` (no upsert). Updates to title only: `PATCH /api/recipes/:recipe_id`.
@@ -56,9 +58,10 @@ Re-publishing today always creates a **new** `recipe_id` (no upsert). Updates to
 
 ## Storage layout
 
-- **Key:** `recipes:all` in Vercel KV (`lib/storage/kv.ts` → `KvCache.listRecipes` / `saveRecipes`).
+- **Key:** `recipes:all` in Redis (`lib/storage/redis.ts` → `RedisCache.listRecipes` / `saveRecipes`).
 - **Value:** JSON array of `PublishedRecipe` objects (newest-first when listed).
 - **Validation:** inbound writes use `deserialiseRecipe()`; outbound replay uses `extractRecipeForReplay()` so reads stay schema-valid.
+- **Config:** set `REDIS_URL` for a standard Redis connection, or `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for Upstash Redis REST.
 
 ## Routes
 

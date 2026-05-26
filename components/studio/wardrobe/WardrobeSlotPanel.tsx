@@ -45,7 +45,9 @@ export default function WardrobeSlotPanel({
     setBusy(true);
     setError(null);
     try {
-      const uploaded = await uploadModuleFile(file, definition.fileModule);
+      const uploaded = await uploadModuleFile(file, definition.fileModule, {
+        usage: "reference"
+      });
       onChange({
         source: "upload",
         ref_file_id: uploaded.file_id,

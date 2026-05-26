@@ -6,7 +6,7 @@ import { isLocalProxyFileId } from "@/lib/perfectcorp/proxy-file-id";
 import { uploadPerfectCorpFile } from "@/lib/perfectcorp/upload-file";
 import { BlobStorage } from "@/lib/storage/blob";
 import { resolveUploadBaseUrl } from "@/lib/storage/local-uploads";
-import { KvCache } from "@/lib/storage/kv";
+import { RedisCache } from "@/lib/storage/redis";
 import { assertSupportedImageMime } from "@/lib/validation/mime";
 import { validatePressOnNailDesignBuffer } from "@/lib/validation/nail-design";
 import { ImageValidator } from "@/lib/validation/upload";
@@ -25,6 +25,15 @@ const ACCESSORY_ONLY_MODULES = new Set([
   "necklace"
 ]);
 
+/** Only standalone design assets are durable app storage; person/base photos are transient. */
+function shouldStoreReferenceImage(module: string, usage: string | null) {
+  return (
+    usage === "reference" ||
+    (module === "nail-vto" && usage === "design") ||
+    ACCESSORY_ONLY_MODULES.has(module)
+  );
+}
+
 function validateByCanvas(
   canvas: "headshot" | "fullbody" | "handwrist" | "feet",
   file: { type: string; size: number; name: string },
@@ -36,6 +45,7 @@ function validateByCanvas(
 export async function POST(request: Request, context: RouteContext) {
   const { module } = await context.params;
   const usage = new URL(request.url).searchParams.get("usage");
+  const storesReferenceImage = shouldStoreReferenceImage(module, usage);
   const moduleConfig = MODULE_CONFIG[module];
   if (!moduleConfig) {
     return NextResponse.json({ error: `Unsupported module: ${module}` }, { status: 400 });
@@ -57,7 +67,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (module === "nail-vto" && usage === "design") {
       validatePressOnNailDesignBuffer(fileLike, byteView);
-    } else if (ACCESSORY_ONLY_MODULES.has(module)) {
+    } else if (storesReferenceImage) {
       ImageValidator.validateAccessory(fileLike, byteView);
     } else {
       validateByCanvas(moduleConfig.sourceCanvas, fileLike, byteView);
@@ -69,13 +79,13 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const kvCache = new KvCache();
+  const redisCache = new RedisCache();
   const hash = createHash("sha256").update(bytes).digest("hex");
   const cacheKey = `${module}:${hash}`;
 
-  const cachedFileId = await kvCache.getFileId(cacheKey);
-  if (cachedFileId) {
-    const cachedUrl = await kvCache.getFileUrl(cachedFileId);
+  const cachedFileId = storesReferenceImage ? await redisCache.getFileId(cacheKey) : null;
+  if (storesReferenceImage && cachedFileId) {
+    const cachedUrl = await redisCache.getFileUrl(cachedFileId);
     const cacheIsValid =
       !getV2ApiKey() || !isLocalProxyFileId(cachedFileId);
 
@@ -100,8 +110,8 @@ export async function POST(request: Request, context: RouteContext) {
             file.name,
             contentTypeHeader.startsWith("image/") ? contentTypeHeader : contentType
           );
-          await kvCache.setFileId(cacheKey, pcFileId);
-          await kvCache.setFileUrl(pcFileId, cachedUrl);
+          await redisCache.setFileId(cacheKey, pcFileId);
+          await redisCache.setFileUrl(pcFileId, cachedUrl);
           return NextResponse.json({
             module,
             file_id: pcFileId,
@@ -117,6 +127,34 @@ export async function POST(request: Request, context: RouteContext) {
   const previewFileId = `file_${randomUUID()}`;
   const baseUrl = resolveUploadBaseUrl(request);
 
+  if (!storesReferenceImage) {
+    if (!getV2ApiKey()) {
+      return NextResponse.json({
+        module,
+        file_id: previewFileId
+      });
+    }
+
+    try {
+      const taskFileId = await uploadPerfectCorpFile(module, bytes, file.name, contentType);
+      return NextResponse.json({
+        module,
+        file_id: taskFileId
+      });
+    } catch (perfectCorpError) {
+      console.error("[perfectcorp/file]", perfectCorpError);
+      return NextResponse.json(
+        {
+          error:
+            perfectCorpError instanceof Error
+              ? perfectCorpError.message
+              : "Perfect Corp file upload failed."
+        },
+        { status: 502 }
+      );
+    }
+  }
+
   try {
     const blobStorage = new BlobStorage();
     const publicUrl = await blobStorage.upload(
@@ -127,8 +165,8 @@ export async function POST(request: Request, context: RouteContext) {
     );
 
     if (!getV2ApiKey()) {
-      await kvCache.setFileId(cacheKey, previewFileId);
-      await kvCache.setFileUrl(previewFileId, publicUrl);
+      await redisCache.setFileId(cacheKey, previewFileId);
+      await redisCache.setFileUrl(previewFileId, publicUrl);
       return NextResponse.json({
         module,
         file_id: previewFileId,
@@ -152,8 +190,8 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    await kvCache.setFileId(cacheKey, taskFileId);
-    await kvCache.setFileUrl(taskFileId, publicUrl);
+    await redisCache.setFileId(cacheKey, taskFileId);
+    await redisCache.setFileUrl(taskFileId, publicUrl);
 
     return NextResponse.json({
       module,

@@ -11,16 +11,18 @@ const ACCESSORY_UPLOAD_MODULES = new Set([
   "necklace"
 ]);
 
-function compressOptionsForModule(module: string) {
+function isReferenceUpload(module: string, usage?: string) {
+  return usage === "reference" || ACCESSORY_UPLOAD_MODULES.has(module);
+}
+
+function compressOptionsForModule(module: string, usage?: string) {
   const config = MODULE_CONFIG[module];
   if (!config) {
     return { maxLongSidePx: 2048 };
   }
   const requirements = CANVAS_UPLOAD_REQUIREMENTS[config.sourceCanvas];
   return {
-    maxLongSidePx: ACCESSORY_UPLOAD_MODULES.has(module)
-      ? 1024
-      : requirements.maxLongSidePx
+    maxLongSidePx: isReferenceUpload(module, usage) ? 1024 : requirements.maxLongSidePx
   };
 }
 
@@ -138,7 +140,7 @@ export async function uploadModuleFile(
 ): Promise<{ file_id: string; public_url?: string }> {
   const uploadFile = options?.preserveOriginal
     ? file
-    : await compressImageForUpload(file, compressOptionsForModule(module));
+    : await compressImageForUpload(file, compressOptionsForModule(module, options?.usage));
   const form = new FormData();
   form.append("file", uploadFile);
   const query = options?.usage ? `?usage=${encodeURIComponent(options.usage)}` : "";

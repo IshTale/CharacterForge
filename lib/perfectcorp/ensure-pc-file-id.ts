@@ -1,7 +1,7 @@
 import { getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { isLocalProxyFileId } from "@/lib/perfectcorp/proxy-file-id";
 import { uploadPerfectCorpFile } from "@/lib/perfectcorp/upload-file";
-import type { KvCache } from "@/lib/storage/kv";
+import type { RedisCache } from "@/lib/storage/redis";
 
 function guessContentType(url: string, fallback: string) {
   const lower = url.toLowerCase();
@@ -30,13 +30,13 @@ function fileNameFromUrl(url: string) {
 export async function ensurePerfectCorpFileId(
   module: string,
   fileId: string,
-  kvCache: KvCache
+  redisCache: RedisCache
 ): Promise<string> {
   if (!getV2ApiKey()) {
     return fileId;
   }
 
-  const publicUrl = isRemoteImageUrl(fileId) ? fileId : await kvCache.getFileUrl(fileId);
+  const publicUrl = isRemoteImageUrl(fileId) ? fileId : await redisCache.getFileUrl(fileId);
   if (!isRemoteImageUrl(fileId) && !isLocalProxyFileId(fileId)) {
     return fileId;
   }
@@ -67,14 +67,14 @@ export async function ensurePerfectCorpFileId(
     contentType.startsWith("image/") ? contentType : "image/jpeg"
   );
 
-  await kvCache.setFileUrl(perfectCorpFileId, publicUrl);
+  await redisCache.setFileUrl(perfectCorpFileId, publicUrl);
   return perfectCorpFileId;
 }
 
 export async function ensurePerfectCorpFileIds(
   module: string,
   fileIds: string[],
-  kvCache: KvCache
+  redisCache: RedisCache
 ) {
-  return Promise.all(fileIds.map((fileId) => ensurePerfectCorpFileId(module, fileId, kvCache)));
+  return Promise.all(fileIds.map((fileId) => ensurePerfectCorpFileId(module, fileId, redisCache)));
 }

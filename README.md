@@ -8,7 +8,7 @@ theatrical, and SFX communities. It operates on a "design, try-on, pre-order" mo
 
 The app homepage (`/`) is the **community dashboard** — a grid of published recipes. Creator
 flow starts at `/studio`. See [docs/recipe-publishing.md](docs/recipe-publishing.md) for how
-publish, storage (`recipes:all` in Vercel KV), and extraction (list vs full recipe) work.
+publish, Redis storage (`recipes:all`), and extraction (list vs full recipe) work.
 
 The frontend relies on high-fidelity, static-image processing ("The Digital Canvas") rather than
 live-webcam AR, ensuring precise layering of user-generated components. The core output is a

@@ -90,7 +90,9 @@ export default function HairPage() {
 
     setUploadBusy(true);
     try {
-      const uploaded = await uploadModuleFile(file, "hair-transfer");
+      const uploaded = await uploadModuleFile(file, "hair-transfer", {
+        usage: "reference"
+      });
       updateHair({
         transfer: {
           mode: "reference",

@@ -3,21 +3,21 @@ import {
   extractRecipeForReplay,
   toRecipeListItems
 } from "@/lib/recipe/publishing";
-import { KvCache } from "@/lib/storage/kv";
+import { RedisCache } from "@/lib/storage/redis";
 import type { PublishedRecipe, Recipe, RecipeListItem } from "@/types/recipe";
 
-const kvCache = new KvCache();
+const redisCache = new RedisCache();
 
 interface RecipeRecord extends Recipe {
   recipe_id: string;
 }
 
 async function loadAll(): Promise<RecipeRecord[]> {
-  return (await kvCache.listRecipes()) as RecipeRecord[];
+  return (await redisCache.listRecipes()) as RecipeRecord[];
 }
 
 async function saveAll(recipes: RecipeRecord[]) {
-  await kvCache.saveRecipes(recipes);
+  await redisCache.saveRecipes(recipes);
 }
 
 export async function listRecipes(): Promise<RecipeListItem[]> {

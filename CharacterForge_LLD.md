@@ -805,17 +805,17 @@ When User B clicks on User A's published Recipe:
 | Per IP Limit | 100 requests / 5 minutes (blocks with 429) |
 | Per Token Limit | 100 requests / minute (blocks with 429) |
 | Backoff Strategy | Exponential: 1s → 2s → 4s → 8s. Max 4 retries, then surface error to user. |
-| Queue Management | The proxy maintains a per-user request queue in Vercel KV (Redis). Each canvas pipeline is serialized within itself but the four canvases run in parallel. |
+| Queue Management | The proxy maintains a per-user request queue in Redis. Each canvas pipeline is serialized within itself but the four canvases run in parallel. |
 
 ## **11.2 Intermediate Image Caching**
 
-The frontend Zustand store acts as the primary cache for intermediate canvas states. The proxy also caches file\_ids in Vercel KV with a 23-hour TTL (one hour short of Perfect Corp's 24-hour file retention period).
+The frontend Zustand store acts as the primary cache for intermediate canvas states. The proxy also caches file\_ids in Redis with a 23-hour TTL (one hour short of Perfect Corp's 24-hour file retention period).
 
 |  |  |
 | --- | --- |
 | **Field / Parameter** | **Description / Value** |
 | File Retention (Perfect Corp) | Uploaded source files: 1 day. Generated result files: 30 days. |
-| Proxy Cache Key | SHA-256(user\_id + module + file\_hash) → file\_id mapping in Vercel KV |
+| Proxy Cache Key | SHA-256(user\_id + module + file\_hash) → file\_id mapping in Redis |
 | Cache Hit Behavior | If the same base photo is submitted for a module it has been used in before and the file\_id is still valid, skip the upload step entirely. |
 | Result URL TTL | Result download\_url from Perfect Corp expires in 2 hours. If the user revisits, the proxy must re-submit the task using the cached file\_ids and Recipe parameters. |
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { Fragment, useEffect, type ReactNode } from "react";
+import React, { Fragment, useEffect, useState, type ReactNode } from "react";
 import FullBodyCanvas from "@/components/canvas/FullBodyCanvas";
 import HandWristCanvas from "@/components/canvas/HandWristCanvas";
 import HeadshotCanvas from "@/components/canvas/HeadshotCanvas";
@@ -26,6 +26,9 @@ export default function StudioShell({ children }: StudioShellProps) {
   const canvases = useCharacterForgeStore((state) => state.canvases);
   const fileIds = useCharacterForgeStore((state) => state.fileIds);
   const restoreSectionSnapshot = useCharacterForgeStore((state) => state.restoreSectionSnapshot);
+  const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   // Find where we currently are in the flow
   const currentIndex = modules.findIndex((m) => pathname?.startsWith(m.href));
@@ -41,6 +44,17 @@ export default function StudioShell({ children }: StudioShellProps) {
   useEffect(() => {
     restoreSectionSnapshot(modules[activeIndex].key);
   }, [activeIndex, restoreSectionSnapshot]);
+
+  const handlePublish = async () => {
+    setPublishError(null);
+    setPublishing(true);
+    try {
+      await publishRecipe();
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "Failed to publish recipe.");
+      setPublishing(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -61,8 +75,13 @@ export default function StudioShell({ children }: StudioShellProps) {
         {/* Center: Title */}
         <h2 className="text-xl font-semibold text-white">Design Studio</h2>
 
-        {/* Right Side: Next/Finish Button */}
-        <div className="flex flex-1 items-center justify-end">
+        {/* Right Side: Next/Publish Button */}
+        <div className="flex flex-1 items-center justify-end gap-3">
+          {publishError && (
+            <span className="hidden max-w-xs truncate text-xs text-red-400 md:inline">
+              {publishError}
+            </span>
+          )}
           {nextModule ? (
             canAdvance ? (
               <Link
@@ -79,7 +98,16 @@ export default function StudioShell({ children }: StudioShellProps) {
                 Next
               </span>
             )
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {publishing ? "Publishing..." : "Publish recipe"}
+            </button>
+          )}
         </div>
       </header>
 
