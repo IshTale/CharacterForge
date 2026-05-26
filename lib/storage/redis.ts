@@ -13,6 +13,39 @@ interface RedisStore {
 
 const RECIPE_FALLBACK_FILE = path.join(process.cwd(), ".data", "recipes.json");
 
+function agentDebugLog(payload: {
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) {
+  const entry = {
+    sessionId: "270c40",
+    runId: "prod-replay",
+    ...payload,
+    timestamp: Date.now()
+  };
+  void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify(entry)}).catch(()=>{});
+  console.log("[agent-debug]", JSON.stringify(entry));
+}
+
+function classifyUrlScheme(value: string | null) {
+  if (!value) return null;
+  try {
+    return new URL(value).protocol.replace(":", "");
+  } catch {
+    return "invalid";
+  }
+}
+
+function errorShape(error: unknown) {
+  const details = error as { name?: unknown; code?: unknown };
+  return {
+    name: typeof details.name === "string" ? details.name : "Error",
+    code: typeof details.code === "string" ? details.code : null
+  };
+}
+
 function encodeValue(value: unknown) {
   return JSON.stringify(value);
 }
@@ -79,6 +112,19 @@ function createUpstashStore(config: { url: string; token: string }): RedisStore 
 
 async function createStore(): Promise<RedisStore | null> {
   const directUrl = redisUrl();
+  // #region agent log
+  agentDebugLog({
+    hypothesisId: "P1,P2",
+    location: "lib/storage/redis.ts:createStore",
+    message: "Storage createStore evaluated Redis env",
+    data: {
+      hasKvRestRedisUrl: Boolean(directUrl),
+      kvRestRedisUrlScheme: classifyUrlScheme(directUrl),
+      hasUpstashRestUrl: Boolean(process.env.UPSTASH_REDIS_REST_URL?.trim()),
+      hasUpstashRestToken: Boolean(process.env.UPSTASH_REDIS_REST_TOKEN?.trim())
+    }
+  });
+  // #endregion
   if (directUrl) {
     return createRedisUrlStore(directUrl);
   }
@@ -99,6 +145,14 @@ export class RedisCache {
   private async store() {
     RedisCache.storePromise ??= createStore().catch((error) => {
       console.error("[redis] connection failed", error);
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "P1,P2",
+        location: "lib/storage/redis.ts:store:connectionFailed",
+        message: "Storage Redis connection failed",
+        data: errorShape(error)
+      });
+      // #endregion
       RedisCache.storePromise = null;
       return null;
     });
@@ -129,7 +183,15 @@ export class RedisCache {
       const store = await this.store();
       if (!store) return null;
       return decodeValue<T>(await store.get(key));
-    } catch {
+    } catch (error) {
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "P1,P3",
+        location: "lib/storage/redis.ts:safeGet",
+        message: "Storage Redis get failed",
+        data: { key, ...errorShape(error) }
+      });
+      // #endregion
       return null;
     }
   }
@@ -144,7 +206,15 @@ export class RedisCache {
       if (!store) return false;
       await store.set(key, encodeValue(value), { ttlSeconds: opts?.ex });
       return true;
-    } catch {
+    } catch (error) {
+      // #region agent log
+      agentDebugLog({
+        hypothesisId: "P1,P3",
+        location: "lib/storage/redis.ts:safeSet",
+        message: "Storage Redis set failed",
+        data: { key, ...errorShape(error) }
+      });
+      // #endregion
       return false;
     }
   }
@@ -188,12 +258,32 @@ export class RedisCache {
     if (persisted) {
       // #region agent log
       void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:persisted',message:'Storage listed recipes from persisted store',data:{source:'persisted',count:persisted.length,recipeIds:persisted.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+      agentDebugLog({
+        hypothesisId: "P1,P2,P3",
+        location: "lib/storage/redis.ts:listRecipes:persisted",
+        message: "Storage listed recipes from persisted store",
+        data: {
+          source: "persisted",
+          count: persisted.length,
+          recipeIds: persisted.slice(-5).map((recipe) => recipe.recipe_id)
+        }
+      });
       // #endregion
       return persisted;
     }
     const fallback = await this.readRecipeFallback();
     // #region agent log
     void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:listRecipes:fallback',message:'Storage listed recipes from fallback store',data:{source:'fallback',count:fallback.length,recipeIds:fallback.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog({
+      hypothesisId: "P1,P2,P3",
+      location: "lib/storage/redis.ts:listRecipes:fallback",
+      message: "Storage listed recipes from fallback store",
+      data: {
+        source: "fallback",
+        count: fallback.length,
+        recipeIds: fallback.slice(-5).map((recipe) => recipe.recipe_id)
+      }
+    });
     // #endregion
     return fallback;
   }
@@ -203,6 +293,16 @@ export class RedisCache {
     if (!persisted) await this.writeRecipeFallback(recipes);
     // #region agent log
     void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'initial',hypothesisId:'H2',location:'lib/storage/redis.ts:saveRecipes',message:'Storage saved recipes',data:{source:persisted?'persisted':'fallback',count:recipes.length,recipeIds:recipes.slice(-5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog({
+      hypothesisId: "P1,P2,P3",
+      location: "lib/storage/redis.ts:saveRecipes",
+      message: "Storage saved recipes",
+      data: {
+        source: persisted ? "persisted" : "fallback",
+        count: recipes.length,
+        recipeIds: recipes.slice(-5).map((recipe) => recipe.recipe_id)
+      }
+    });
     // #endregion
   }
 }

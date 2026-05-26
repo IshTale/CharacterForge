@@ -47,6 +47,11 @@ export async function createRecipe(input: Recipe) {
 export async function getRecipe(recipeId: string): Promise<PublishedRecipe | null> {
   const recipes = await loadAll();
   const record = recipes.find((recipe) => recipe.recipe_id === recipeId);
+  // #region agent log
+  const getRecipeDebugEntry = {sessionId:'270c40',runId:'prod-replay',hypothesisId:'P3,T1,T2',location:'lib/recipe/repository.ts:getRecipe',message:'Repository looked up recipe for replay',data:{recipeId,found:Boolean(record),count:recipes.length,recipeIds:recipes.slice(0,5).map((recipe)=>recipe.recipe_id)},timestamp:Date.now()};
+  void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify(getRecipeDebugEntry)}).catch(()=>{});
+  console.log("[agent-debug]", JSON.stringify(getRecipeDebugEntry));
+  // #endregion
   if (!record) return null;
   return extractRecipeForReplay(record);
 }
