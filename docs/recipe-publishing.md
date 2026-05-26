@@ -61,7 +61,7 @@ Re-publishing today always creates a **new** `recipe_id` (no upsert). Updates to
 - **Key:** `recipes:all` in Redis (`lib/storage/redis.ts` → `RedisCache.listRecipes` / `saveRecipes`).
 - **Value:** JSON array of `PublishedRecipe` objects (newest-first when listed).
 - **Validation:** inbound writes use `deserialiseRecipe()`; outbound replay uses `extractRecipeForReplay()` so reads stay schema-valid.
-- **Config:** set `REDIS_URL` for a standard Redis connection, or `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for Upstash Redis REST.
+- **Config:** set `KV_REST_REDIS_URL` for a standard Redis connection, or `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for Upstash Redis REST.
 
 ## Routes
 

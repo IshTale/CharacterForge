@@ -29,7 +29,7 @@ function decodeValue<T>(value: string | null): T | null {
 }
 
 function redisUrl() {
-  return process.env.REDIS_URL?.trim() || null;
+  return process.env.KV_REST_REDIS_URL?.trim() || null;
 }
 
 function upstashRestConfig() {
