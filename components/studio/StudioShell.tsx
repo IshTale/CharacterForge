@@ -8,6 +8,7 @@ import HandWristCanvas from "@/components/canvas/HandWristCanvas";
 import HeadshotCanvas from "@/components/canvas/HeadshotCanvas";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
 import type { StudioSectionKey } from "@/types/canvas";
+import type { PublishedRecipe } from "@/types/recipe";
 
 interface StudioShellProps {
   children: ReactNode;
@@ -27,8 +28,11 @@ export default function StudioShell({ children }: StudioShellProps) {
   const fileIds = useCharacterForgeStore((state) => state.fileIds);
   const restoreSectionSnapshot = useCharacterForgeStore((state) => state.restoreSectionSnapshot);
   const publishRecipe = useCharacterForgeStore((state) => state.publishRecipe);
+  const loadPublishedRecipe = useCharacterForgeStore((state) => state.loadPublishedRecipe);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [importedRecipeId, setImportedRecipeId] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Find where we currently are in the flow
   const currentIndex = modules.findIndex((m) => pathname?.startsWith(m.href));
@@ -44,6 +48,43 @@ export default function StudioShell({ children }: StudioShellProps) {
   useEffect(() => {
     restoreSectionSnapshot(modules[activeIndex].key);
   }, [activeIndex, restoreSectionSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const recipeId = new URLSearchParams(window.location.search).get("recipe_id");
+    if (!recipeId || recipeId === importedRecipeId) {
+      return;
+    }
+
+    const importRecipe = async () => {
+      setImportError(null);
+      // #region agent log
+      void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'components/studio/StudioShell.tsx:importRecipe:start',message:'Client studio import started from recipe query',data:{recipeId,path:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      try {
+        const response = await fetch(`/api/recipes/${recipeId}`, { cache: "no-store" });
+        // #region agent log
+        void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'components/studio/StudioShell.tsx:importRecipe:response',message:'Client studio import fetch completed',data:{recipeId,status:response.status,ok:response.ok},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        const payload = (await response.json().catch(() => ({}))) as {
+          data?: PublishedRecipe;
+          error?: string;
+        };
+        if (!response.ok || !payload.data) {
+          throw new Error(payload.error ?? "Could not load this recipe.");
+        }
+        loadPublishedRecipe(payload.data);
+        setImportedRecipeId(recipeId);
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : "Could not load this recipe.");
+      }
+    };
+
+    void importRecipe();
+  }, [importedRecipeId, loadPublishedRecipe]);
 
   const handlePublish = async () => {
     setPublishError(null);
@@ -77,6 +118,11 @@ export default function StudioShell({ children }: StudioShellProps) {
 
         {/* Right Side: Next/Publish Button */}
         <div className="flex flex-1 items-center justify-end gap-3">
+          {importError && (
+            <span className="hidden max-w-xs truncate text-xs text-red-400 md:inline">
+              {importError}
+            </span>
+          )}
           {publishError && (
             <span className="hidden max-w-xs truncate text-xs text-red-400 md:inline">
               {publishError}

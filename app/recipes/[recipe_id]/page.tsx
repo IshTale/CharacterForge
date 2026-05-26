@@ -33,7 +33,7 @@ export default async function PublishedRecipePage({ params }: RecipePageProps) {
       </p>
       <Link
         className="mt-6 inline-block rounded bg-white px-4 py-2 text-sm font-medium text-black"
-        href="/studio"
+        href={`/studio/upload?recipe_id=${recipe.recipe_id}`}
       >
         Open studio to try on
       </Link>

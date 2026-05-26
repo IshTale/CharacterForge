@@ -132,6 +132,7 @@ const defaultRecipe: Recipe = {
 export interface CharacterForgeStore extends CanvasSlice, RecipeSlice {
   triggerRender: (modules: string[]) => Promise<void>;
   publishRecipe: () => Promise<string>;
+  loadPublishedRecipe: (recipe: Recipe) => void;
   resetStudio: () => void;
 }
 
@@ -527,6 +528,34 @@ export const useCharacterForgeStore = create<CharacterForgeStore>((set, get) => 
       window.location.assign("/");
     }
     return recipeId;
+  },
+  loadPublishedRecipe: (recipe) => {
+    // #region agent log
+    void fetch('http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'270c40'},body:JSON.stringify({sessionId:'270c40',runId:'post-fix',hypothesisId:'T1,T2',location:'store/characterforge.store.ts:loadPublishedRecipe',message:'Client store applying published recipe',data:{recipeId:recipe.recipe_id??null,createdAt:recipe.created_at,hasWardrobe:Boolean(recipe.wardrobe),hasMakeup:Boolean(recipe.makeup),hasHair:Boolean(recipe.hair),hasJewelry:Boolean(recipe.jewelry)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    set({
+      recipe,
+      dirtyModules: new Set(),
+      sectionSnapshots: {},
+      canvases: {
+        headshot: createEmptyCanvas(),
+        fullbody: createEmptyCanvas(),
+        handwrist: createEmptyCanvas(),
+        feet: createEmptyCanvas()
+      },
+      basePhotos: {
+        headshot: null,
+        fullbody: null,
+        handwrist: null,
+        feet: null
+      },
+      fileIds: {
+        headshot: null,
+        fullbody: null,
+        handwrist: null,
+        feet: null
+      }
+    });
   },
   resetStudio: () =>
     set({
