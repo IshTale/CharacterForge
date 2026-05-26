@@ -11,6 +11,28 @@ const ACCESSORY_UPLOAD_MODULES = new Set([
   "necklace"
 ]);
 
+function agentUploadDebugLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>
+) {
+  const payload = {
+    sessionId: "e6857c",
+    runId: "pre-fix",
+    hypothesisId,
+    location,
+    message,
+    data,
+    timestamp: Date.now()
+  };
+  void fetch("http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e6857c" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
 function isReferenceUpload(module: string, usage?: string) {
   return usage === "reference" || ACCESSORY_UPLOAD_MODULES.has(module);
 }
@@ -144,12 +166,54 @@ export async function uploadModuleFile(
   const form = new FormData();
   form.append("file", uploadFile);
   const query = options?.usage ? `?usage=${encodeURIComponent(options.usage)}` : "";
+  // #region agent log
+  agentUploadDebugLog(
+    "H1,H2,H4,H5",
+    "lib/api/sse-task-client.ts:uploadModuleFile:before-fetch",
+    "Client upload request prepared",
+    {
+      module,
+      usage: options?.usage ?? null,
+      preserveOriginal: Boolean(options?.preserveOriginal),
+      originalType: file.type,
+      originalSize: file.size,
+      uploadType: uploadFile.type,
+      uploadSize: uploadFile.size
+    }
+  );
+  // #endregion
   const response = await fetch(`/api/perfectcorp/${module}/file${query}`, {
     method: "POST",
     body: form
   });
+  const responseContentType = response.headers.get("content-type") ?? "";
+  const responseText = await response.text();
+  const responsePreview = responseText.slice(0, 120);
+  // #region agent log
+  agentUploadDebugLog(
+    "H1,H2,H4",
+    "lib/api/sse-task-client.ts:uploadModuleFile:after-response",
+    "Client upload response received",
+    {
+      module,
+      status: response.status,
+      ok: response.ok,
+      contentType: responseContentType,
+      bodyLength: responseText.length,
+      firstChar: responseText[0] ?? null,
+      startsWithHtml: responseText.trimStart().startsWith("<"),
+      preview: responsePreview
+    }
+  );
+  // #endregion
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    const payload = (() => {
+      try {
+        return JSON.parse(responseText) as { error?: string };
+      } catch {
+        return {};
+      }
+    })();
     const fallback =
       response.status === 413
         ? "Upload is too large for hosting limits. Try a smaller image."
@@ -158,5 +222,26 @@ export async function uploadModuleFile(
         : `Upload failed for ${module} (${response.status}).`;
     throw new Error(payload.error ?? fallback);
   }
-  return (await response.json()) as { file_id: string; public_url?: string };
+  try {
+    return JSON.parse(responseText) as { file_id: string; public_url?: string };
+  } catch (parseError) {
+    // #region agent log
+    agentUploadDebugLog(
+      "H1,H4",
+      "lib/api/sse-task-client.ts:uploadModuleFile:parse-error",
+      "Client failed to parse successful upload response JSON",
+      {
+        module,
+        status: response.status,
+        contentType: responseContentType,
+        bodyLength: responseText.length,
+        firstChar: responseText[0] ?? null,
+        startsWithHtml: responseText.trimStart().startsWith("<"),
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+        preview: responsePreview
+      }
+    );
+    // #endregion
+    throw parseError;
+  }
 }

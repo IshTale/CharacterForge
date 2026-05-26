@@ -1,11 +1,38 @@
 import { PERFECTCORP_V2_BASE, getV2ApiKey } from "@/lib/perfectcorp/api-env";
 import { resolvePerfectCorpFilePath } from "@/lib/perfectcorp/file-path";
 
+function agentPerfectCorpUploadDebugLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>
+) {
+  const payload = {
+    sessionId: "e6857c",
+    runId: "pre-fix",
+    hypothesisId,
+    location,
+    message,
+    data,
+    timestamp: Date.now()
+  };
+  console.info("[agent-debug-perfectcorp-upload]", payload);
+  void fetch("http://127.0.0.1:7908/ingest/6f4d8957-446a-41db-ac71-451cd352f93e", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e6857c" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
 function normalizeContentType(contentType: string) {
   if (contentType === "image/png") {
     return "image/png";
   }
   return "image/jpg";
+}
+
+function leadingCharCodes(value: string) {
+  return Array.from(value.slice(0, 8)).map((char) => char.charCodeAt(0));
 }
 
 /**
@@ -42,13 +69,32 @@ export async function uploadPerfectCorpFile(
       ]
     })
   });
+  const initContentType = initResponse.headers.get("content-type") ?? "";
+  const initText = await initResponse.text();
+  // #region agent log
+  agentPerfectCorpUploadDebugLog(
+    "H6",
+    "lib/perfectcorp/upload-file.ts:uploadPerfectCorpFile:init-response",
+    "Perfect Corp file init response received",
+    {
+      module,
+      apiVersion,
+      segment,
+      status: initResponse.status,
+      ok: initResponse.ok,
+      contentType: initContentType,
+      bodyLength: initText.length,
+      firstChar: initText[0] ?? null,
+      leadingCharCodes: leadingCharCodes(initText)
+    }
+  );
+  // #endregion
 
   if (!initResponse.ok) {
-    const text = await initResponse.text();
-    throw new Error(`Perfect Corp file init failed (${initResponse.status}): ${text}`);
+    throw new Error(`Perfect Corp file init failed (${initResponse.status}): ${initText}`);
   }
 
-  const initJson = (await initResponse.json()) as {
+  let initJson: {
     data?: {
       files?: Array<{
         file_id?: string;
@@ -60,6 +106,29 @@ export async function uploadPerfectCorpFile(
       }>;
     };
   };
+  try {
+    initJson = JSON.parse(initText) as typeof initJson;
+  } catch (parseError) {
+    // #region agent log
+    agentPerfectCorpUploadDebugLog(
+      "H6",
+      "lib/perfectcorp/upload-file.ts:uploadPerfectCorpFile:init-parse-error",
+      "Perfect Corp file init response was not valid JSON",
+      {
+        module,
+        apiVersion,
+        segment,
+        status: initResponse.status,
+        contentType: initContentType,
+        bodyLength: initText.length,
+        firstChar: initText[0] ?? null,
+        leadingCharCodes: leadingCharCodes(initText),
+        error: parseError instanceof Error ? parseError.message : String(parseError)
+      }
+    );
+    // #endregion
+    throw parseError;
+  }
 
   const fileEntry = initJson.data?.files?.[0];
   const fileId = fileEntry?.file_id;
@@ -78,6 +147,22 @@ export async function uploadPerfectCorpFile(
     headers: putHeaders,
     body: new Uint8Array(bytes)
   });
+  // #region agent log
+  agentPerfectCorpUploadDebugLog(
+    "H7",
+    "lib/perfectcorp/upload-file.ts:uploadPerfectCorpFile:put-response",
+    "Perfect Corp presigned upload response received",
+    {
+      module,
+      apiVersion,
+      segment,
+      status: putResponse.status,
+      ok: putResponse.ok,
+      contentType: putResponse.headers.get("content-type") ?? "",
+      hasContentLength: Boolean(putResponse.headers.get("content-length"))
+    }
+  );
+  // #endregion
 
   if (!putResponse.ok) {
     const text = await putResponse.text();
