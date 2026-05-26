@@ -31,6 +31,11 @@ function agentUploadDebugLog(
     headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "e6857c" },
     body: JSON.stringify(payload)
   }).catch(() => {});
+  void fetch("/api/debug/client-upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
 }
 
 function isReferenceUpload(module: string, usage?: string) {
