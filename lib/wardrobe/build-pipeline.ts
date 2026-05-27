@@ -48,7 +48,7 @@ export function buildWardrobePipelineSteps(
       payload: {
         src_file_id: fileIds.fullbody,
         ...refForSlot(slot),
-        garment_category: definition.garmentCategory,
+        garment_category: "auto",
         gender,
         change_shoes: false
       }
