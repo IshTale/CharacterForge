@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 interface RecipeCardProps {
   title: string;
   author: string;
@@ -9,27 +7,14 @@ interface RecipeCardProps {
 export default function RecipeCard({ title, author, displayImageUrl }: RecipeCardProps) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-mint-300/70 bg-white/70 shadow-[0_18px_45px_rgba(31,111,123,0.16)] transition duration-300 hover:-translate-y-0.5 hover:border-mint-500 hover:shadow-[0_24px_60px_rgba(31,111,123,0.22)]">
-      <div className="relative h-64 overflow-hidden bg-mint-100 md:h-72">
+      <div className="bg-mint-100">
         {displayImageUrl ? (
-          <>
-            <Image
-              src={displayImageUrl}
-              alt=""
-              fill
-              aria-hidden="true"
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover opacity-70 blur-md transition duration-500 group-hover:scale-[1.03]"
-              unoptimized
-            />
-            <Image
-              src={displayImageUrl}
-              alt={`${title} display picture`}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-contain transition duration-500 group-hover:scale-[1.02]"
-              unoptimized
-            />
-          </>
+          <img
+            src={displayImageUrl}
+            alt={`${title} display picture`}
+            className="block h-auto w-full transition duration-500 group-hover:scale-[1.01]"
+            loading="lazy"
+          />
         ) : (
           <RecipePlaceholder />
         )}
