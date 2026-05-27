@@ -20,7 +20,7 @@ body {
     radial-gradient(circle at top left, rgba(159, 233, 237, 0.72), transparent 36rem),
     radial-gradient(circle at top right, rgba(201, 245, 246, 0.82), transparent 34rem),
     radial-gradient(circle at bottom left, rgba(255, 191, 211, 0.2), transparent 28rem),
-    linear-gradient(135deg, #f3fdff 0%, #e8fbfb 45%, #fff3f8 100%);
+    linear-gradient(135deg, #e0f2fe 0%, #fce7f3 35%, #fce7f3 65%, #e0f2fe 100%);
   color: #2b1025;
 }
 
