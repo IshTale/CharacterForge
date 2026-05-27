@@ -33,17 +33,24 @@ const REGION_BUTTONS: RegionButton[] = [
 
 interface FaceRegionMapProps {
   selectedRegion: MakeupRegion;
+  consideredRegions?: MakeupRegion[];
   onSelect: (region: MakeupRegion) => void;
 }
 
-export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMapProps) {
+export default function FaceRegionMap({
+  selectedRegion,
+  consideredRegions = [],
+  onSelect
+}: FaceRegionMapProps) {
   const [hoveredRegion, setHoveredRegion] = useState<MakeupRegion | null>(null);
+  const consideredSet = new Set(consideredRegions);
 
   // Dynamically switch between Fill highlights (for areas) and Stroke highlights (for lines)
   const getHighlightProps = (regionId: MakeupRegion, isArea = false) => {
     const isHovered = regionId === hoveredRegion;
     const isSelected = regionId === selectedRegion;
-    const isActive = isHovered || isSelected;
+    const isConsidered = consideredSet.has(regionId);
+    const isActive = isHovered || isSelected || isConsidered;
 
     if (!isActive) {
       return {
@@ -59,7 +66,7 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
         fill: "#f04aa7",
         className: "transition-all duration-300",
         style: {
-          opacity: isSelected ? 0.36 : 0.18,
+          opacity: isSelected ? 0.36 : isHovered ? 0.2 : 0.14,
           filter: "drop-shadow(0 0 10px rgba(240,74,167,0.85)) blur(4px)",
         },
       };
@@ -67,12 +74,12 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
 
     return {
       stroke: "#db1f85",
-      strokeWidth: isSelected ? "4" : "2.5",
+      strokeWidth: isSelected ? "4" : isHovered ? "2.8" : "2.2",
       fill: "none",
       strokeLinecap: "round" as const,
       className: "transition-all duration-300",
       style: {
-        opacity: isSelected ? 1 : 0.7,
+        opacity: isSelected ? 1 : isHovered ? 0.75 : 0.58,
         filter: isSelected ? "drop-shadow(0 0 7px #f04aa7)" : "drop-shadow(0 0 5px rgba(240,74,167,0.65))",
       },
     };
@@ -92,6 +99,16 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
         ) : (
           <p className="text-sm font-medium text-plum-700/60">Select a region to edit</p>
         )}
+      </div>
+      <div className="mb-3 flex items-center justify-center gap-3 text-[11px] text-plum-700/70">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-magenta-300 bg-magenta-200/90 shadow-[0_0_8px_rgba(240,74,167,0.45)]" />
+          Selected for Application
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-white bg-magenta-500 shadow-[0_0_12px_rgba(240,74,167,0.95)]" />
+          Currently Viewing
+        </span>
       </div>
 
       <div className="relative mx-auto h-[480px] w-[340px]">
@@ -183,6 +200,7 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
         {/* Minimalist Hover Dots */}
         {REGION_BUTTONS.map((button) => {
           const isSelected = selectedRegion === button.id;
+          const isConsidered = consideredSet.has(button.id);
 
           return (
             <button
@@ -196,7 +214,9 @@ export default function FaceRegionMap({ selectedRegion, onSelect }: FaceRegionMa
               aria-label={button.label}
             >
               <div className={`h-2.5 w-2.5 rounded-full border-2 transition-all duration-300 ${isSelected
-                  ? "border-white bg-magenta-500 shadow-[0_0_12px_rgba(240,74,167,0.95)] scale-125"
+                ? "border-white bg-magenta-500 shadow-[0_0_12px_rgba(240,74,167,0.95)] scale-125"
+                : isConsidered
+                  ? "border-magenta-300 bg-magenta-200/90 shadow-[0_0_8px_rgba(240,74,167,0.45)] scale-110 group-hover:border-magenta-400 group-hover:bg-magenta-300"
                   : "border-mint-300 bg-white group-hover:border-magenta-400 group-hover:bg-magenta-400 group-hover:shadow-[0_0_10px_rgba(240,74,167,0.7)] group-hover:scale-110"
                 }`} />
             </button>

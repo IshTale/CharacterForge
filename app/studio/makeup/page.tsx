@@ -8,6 +8,7 @@ import IntensitySlider from "@/components/studio/makeup/IntensitySlider";
 import MakeupEffectPanel from "@/components/studio/makeup/MakeupEffectPanel";
 import PatternSelector from "@/components/studio/makeup/PatternSelector";
 import { REGION_CATALOG } from "@/constants/makeup-catalogs";
+import { buildMakeupEffects } from "@/lib/makeup/build-effects";
 import { legacyColorsFromEffect, normalizeColors, normalizeIntensities } from "@/lib/makeup/colors";
 import { useMakeupPatterns } from "@/lib/makeup/use-makeup-patterns";
 import { useCharacterForgeStore } from "@/store/characterforge.store";
@@ -120,6 +121,11 @@ export default function MakeupPage() {
     : selectedRegion === "skin_smooth"
       ? 0
       : 1;
+  const apiConsideredRegions = useMemo(
+    () => new Set(buildMakeupEffects(recipe.makeup).map((effect) => effect.category as MakeupRegion)),
+    [recipe.makeup]
+  );
+  const hasSelectedRegionEffect = Boolean(recipe.makeup.effects?.[selectedRegion]);
 
   const patternPanelTitle =
     selectedRegion === "lip_color"
@@ -180,11 +186,27 @@ export default function MakeupPage() {
     }
   };
 
+  const clearRegion = (region: MakeupRegion) => {
+    updateRecipe((state) => {
+      const nextEffects = { ...(state.makeup.effects ?? {}) };
+      delete nextEffects[region];
+      return {
+        ...state,
+        makeup: {
+          ...state.makeup,
+          effects: nextEffects
+        }
+      };
+    });
+    markDirty("makeup");
+  };
+
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold text-plum-900">Makeup Studio</h1>
       <FaceRegionMap
         selectedRegion={selectedRegion}
+        consideredRegions={Array.from(apiConsideredRegions)}
         onSelect={(region) => {
           updateRecipe((state) => ({
             ...state,
@@ -201,7 +223,19 @@ export default function MakeupPage() {
         }}
       />
 
-      <MakeupEffectPanel title={`${REGION_LABEL[selectedRegion]} Options`}>
+      <MakeupEffectPanel
+        title={`${REGION_LABEL[selectedRegion]} Options`}
+        headerAction={
+          <button
+            type="button"
+            onClick={() => clearRegion(selectedRegion)}
+            disabled={!hasSelectedRegionEffect}
+            className="text-xs font-medium text-magenta-700 transition hover:text-magenta-800 disabled:cursor-not-allowed disabled:text-plum-400/80"
+          >
+            Clear section
+          </button>
+        }
+      >
         <div className="space-y-4">
           {hasCatalog && (
             <div className="space-y-3">
